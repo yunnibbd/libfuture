@@ -35,21 +35,31 @@ public:
 		return future_type();
 	}
 
-	//调用co_await时先进行判断
+	/**
+	 * @brief co_await之前调用
+	 * @param
+	 * @return bool 是否需要挂起
+	 */
 	bool await_ready()
 	{
 		return false;
 	}
 
-	//co_await一个协程
+	/**
+	 * @brief 协程挂起调用
+	 * @param h 当前协程
+	 * @return
+	 */
 	void await_suspend(std::coroutine_handle<> h)
 	{
-		//cout << h.address() << endl;
-		//此时的handle_是await的协程的
-		
+
 	}
 
-	//co_await后的返回值
+	/**
+	 * @brief co_await完毕后返回给调用者
+	 * @param
+	 * @return value_type 返回值
+	 */
 	value_type await_resume()
 	{
 		std::cout << 1 << std::endl;

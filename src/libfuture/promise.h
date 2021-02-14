@@ -13,17 +13,31 @@ struct promise_impl_t
 
 	using coro_handle = std::coroutine_handle<promise_type>;
 
-	//get_return_object后执行
+	/**
+	 * @brief get_return_object后执行
+	 * @param
+	 * @return
+	 */
 	constexpr auto initial_suspend() noexcept
 	{
 		return std::suspend_always();
 	}
 
+	/**
+	 * @brief 协程关闭后执行
+	 * @param
+	 * @return
+	 */
 	constexpr auto final_suspend() noexcept
 	{
 		return std::suspend_always();
 	}
 
+	/**
+	 * @brief 异常时执行
+	 * @param
+	 * @return
+	 */
 	void unhandled_excepstion()
 	{
 		terminate();
@@ -38,21 +52,32 @@ struct promise_t : public promise_impl_t<_Ty>
 	using typename promise_impl_t<_Ty>::future_type;
 	using typename promise_impl_t<_Ty>::coro_handle;
 
-	//对一个协程进行构造后会执行
+	/**
+	 * @brief 对一个协程进行构造后会执行，返回为当前协程
+	 * @param
+	 * @return
+	 */
 	future_type get_return_object() noexcept 
 	{
 		return future_type(coro_handle::from_promise(*this));
 	}
 
-	//使用co_yield的时候会调用(value为co_yield右边的值)
+	/**
+	 * @brief 使用co_yield的时候会调用
+	 * @param value co_yield右边的值
+	 * @return
+	 */
 	auto yield_value(value_type value) noexcept 
 	{
 		value_ = value;
 		return std::suspend_always();
 	}
 
-	//不可同时包含return_value和return_void
-	//使用co_return一个值时会调用,或者协程结束后也会调用
+	/**
+	 * @brief 使用co_return一个值时会调用,或者协程结束后也会调用
+	 * @param value co_return右边的值
+	 * @return
+	 */
 	void return_value(value_type value) noexcept 
 	{
 		value_ = value;
@@ -69,20 +94,31 @@ struct promise_t<void> : public promise_impl_t<void>
 	using typename promise_impl_t<void>::future_type;
 	using typename promise_impl_t<void>::coro_handle;
 
-	//对一个协程进行构造后会执行
+	/**
+	 * @brief 对一个协程进行构造后会执行，返回为当前协程
+	 * @param
+	 * @return
+	 */
 	future_type get_return_object() noexcept 
 	{
 		return future_type(coro_handle::from_promise(*this));
 	}
 
-	//使用co_yield的时候会调用(value为co_yield右边的值)
+	/**
+	 * @brief 使用co_yield的时候会调用
+	 * @param
+	 * @return
+	 */
 	auto yield_value() noexcept 
 	{
 		return std::suspend_always();
 	}
 
-	//不可同时包含return_value和return_void
-	//使用co_return一个值时会调用,或者协程结束后也会调用
+	/**
+	 * @brief 使用co_return一个值时会调用,或者协程结束后也会调用
+	 * @param
+	 * @return
+	 */
 	auto return_void() 
 	{
 	

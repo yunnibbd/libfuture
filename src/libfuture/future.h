@@ -22,13 +22,21 @@ public:
 	
 	}
 
-	//调用co_await时先进行判断
+	/**
+	 * @brief co_await之前调用
+	 * @param
+	 * @return bool 是否需要挂起
+	 */
 	bool await_ready()
 	{
 		return false;
 	}
 
-	//co_await一个协程
+	/**
+	 * @brief 协程挂起调用
+	 * @param h 当前协程
+	 * @return
+	 */
 	void await_suspend(std::coroutine_handle<> h)
 	{
 		//此时的handle_是co_await的协程的
@@ -52,7 +60,11 @@ public:
 		} while (0);
 	}
 
-	//切换到这个协程
+	/**
+	 * @brief 切换到当前协程
+	 * @param
+	 * @return bool 当前协程是否执行完毕
+	 */
 	bool resume()
 	{
 		if (!handle_.done())
@@ -63,6 +75,11 @@ public:
 		return !handle_.done();
 	}
 
+	/**
+	 * @brief 获取当前协程句柄
+	 * @param
+	 * @return coro_handle 协程句柄
+	 */
 	coro_handle handle()
 	{
 		return handle_;
@@ -89,13 +106,16 @@ public:
 
 	}
 
-	//co_await后的返回值
+	/**
+	 * @brief co_await完毕后返回给调用者
+	 * @param
+	 * @return value_type 返回值
+	 */
 	value_type await_resume() 
 	{
 		return this->handle_.promise().value_;
 	}
 
-	//
 	value_type get() 
 	{
 		return this->handle_.promise().value_;
@@ -127,13 +147,16 @@ public:
 
 	future_t(future_t&&) = default;
 
-	//co_await后的返回值
+	/**
+	 * @brief co_await完毕后返回给调用者
+	 * @param
+	 * @return
+	 */
 	void await_resume()
 	{
 		
 	}
 
-	//
 	void get()
 	{
 		
