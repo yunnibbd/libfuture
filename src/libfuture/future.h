@@ -56,7 +56,7 @@ public:
 						//被co_await的协程执行完毕,执行调用者协程
 						break;
 					//被co_await的协程没有执行完毕,添加进依赖队列
-					current_scheduler()->add_to_suspend(h, handle_);
+					current_scheduler()->add_to_depend(h, handle_);
 					return;
 				}
 			} while (0);

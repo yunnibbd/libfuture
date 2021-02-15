@@ -67,15 +67,25 @@ public:
 	}
 
 	/**
-	 * @brief 添加协程关系依赖队列
+	 * @brief 添加进协程关系依赖队列
 	 * @param handle 要等待别的协程的协程
 	 * @param dependent 被依赖的协程
 	 * @return
 	 */
-	void add_to_suspend(handle_type handle, handle_type dependent)
+	void add_to_depend(handle_type handle, handle_type dependent)
 	{
 		depend_queue_.insert(std::make_pair(handle, dependent));
 	}
+
+	/**
+	 * @brief 添加挂起队列
+	 * @param handle 调用co_yield的协程句柄
+	 * @return
+	 */
+	/*void add_to_suspend(handle_type handle)
+	{
+		suspend_queue_.insert(handle);
+	}*/
 
 	/**
 	 * @brief 添加一个需要等待到某一时刻运行的协程
@@ -84,7 +94,9 @@ public:
 	 */
 	void sleep_until(uint64_t msec)
 	{
-		sleep_queue_.insert(std::make_pair(msec, current_handle()));
+		auto handle = current_handle();
+		sleep_queue_.insert(std::make_pair(msec, handle));
+		in_sleep_queue_.insert(handle);
 	}
 
 	/**
@@ -157,12 +169,27 @@ private:
 		{
 			if (begin->first <= cur_ms)
 			{
-				auto handle = begin->second;
-				if (!handle.done())
+				do
 				{
-					set_current_handle(handle);
-					handle.resume();
-				}
+					auto handle = begin->second;
+					if (handle.done())
+						break;
+					auto start = depend_queue_.lower_bound(handle);
+					auto stop = depend_queue_.upper_bound(handle);
+					bool can_trigger = true;
+					for (; start != stop; )
+					{
+						if (!start->second.done())
+							can_trigger = false;
+						++start;
+					}
+					if (can_trigger)
+					{
+						set_current_handle(handle);
+						handle.resume();
+					}
+				} while (0);
+				in_sleep_queue_.erase(begin->second);
 				begin = sleep_queue_.erase(begin);
 			}
 			break;
@@ -213,7 +240,15 @@ private:
 		{
 			if (begin->second.done())
 			{
-				begin->first.resume();
+				if (!begin->first.done())
+				{
+					//查询当前协程是否在sleep_queue_中
+					if (in_sleep_queue_.find(begin->first) == in_sleep_queue_.end())
+					{
+						set_current_handle(begin->first);
+						begin->first.resume();
+					}
+				}
 				if (begin->first.done())
 				{
 					begin = depend_queue_.erase(begin);
@@ -226,14 +261,30 @@ private:
 		return false;
 	}
 
+	/**
+	 * @brief 调度挂起队列
+	 * @param
+	 * @return bool 挂起队列是否为空
+	 */
+	/*bool update_suspend_queue()
+	{
+		if (suspend_queue_.empty())
+			return true;
+		auto begin = suspend_queue_;
+	}*/
+
 	//调度器正在执行的协程句柄
 	handle_type current_handle_;
 	//预备队列
 	std::set<handle_type> ready_queue_;
+	//挂起队列
+	//std::set<handle_type> suspend_queue_;
 	//依赖队列
 	std::multimap<handle_type, handle_type> depend_queue_;
 	//休眠队列
 	std::multimap<uint64_t, handle_type> sleep_queue_;
+	//休眠队列中的协程
+	std::set<handle_type> in_sleep_queue_;
 };
 
 /**
