@@ -53,6 +53,9 @@ public:
 		for (auto& entry: depend_queue_)
 			entry.second.destroy();
 		depend_queue_.clear();
+		for (auto& handle : suspend_queue_)
+			handle.destroy();
+		suspend_queue_.clear();
 	}
 
 	/**
@@ -82,10 +85,10 @@ public:
 	 * @param handle 调用co_yield的协程句柄
 	 * @return
 	 */
-	/*void add_to_suspend(handle_type handle)
+	void add_to_suspend(handle_type handle)
 	{
 		suspend_queue_.insert(handle);
-	}*/
+	}
 
 	/**
 	 * @brief 添加一个需要等待到某一时刻运行的协程
@@ -106,27 +109,12 @@ public:
 	 */
 	void run_until_no_task()
 	{
-		bool sleep_queue_empty = false;
-		bool ready_queue_empty = false;
-		bool depend_queue_empty = false;
 		while (true)
 		{
-			if (update_sleep_queue())
-				sleep_queue_empty = true;
-			else
-				sleep_queue_empty = false;
-
-			if (update_ready_queue())
-				ready_queue_empty = true;
-			else
-				ready_queue_empty = false;
-
-			if (update_depend_queue())
-				depend_queue_empty = true;
-			else
-				depend_queue_empty = false;
-
-			if (sleep_queue_empty && ready_queue_empty && depend_queue_empty)
+			if (update_sleep_queue() &&
+				update_ready_queue() &&
+				update_depend_queue() &&
+				update_suspend_queue())
 				break;
 		}
 	}
@@ -266,19 +254,30 @@ private:
 	 * @param
 	 * @return bool 挂起队列是否为空
 	 */
-	/*bool update_suspend_queue()
+	bool update_suspend_queue()
 	{
 		if (suspend_queue_.empty())
 			return true;
-		auto begin = suspend_queue_;
-	}*/
+		auto begin = suspend_queue_.begin();
+		auto end = suspend_queue_.end();
+		for (; begin != end; )
+		{
+			if (!begin->done())
+			{
+				ready_queue_.insert(*begin);
+				begin = suspend_queue_.erase(begin);
+				continue;
+			}
+			++begin;
+		}
+	}
 
 	//调度器正在执行的协程句柄
 	handle_type current_handle_;
 	//预备队列
 	std::set<handle_type> ready_queue_;
 	//挂起队列
-	//std::set<handle_type> suspend_queue_;
+	std::set<handle_type> suspend_queue_;
 	//依赖队列
 	std::multimap<handle_type, handle_type> depend_queue_;
 	//休眠队列

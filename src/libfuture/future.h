@@ -53,8 +53,11 @@ public:
 					current_scheduler()->set_current_handle(handle_);
 					handle_.resume();
 					if (handle_.done())
+					{
 						//被co_await的协程执行完毕,执行调用者协程
+						handle_.destroy();
 						break;
+					}
 					//被co_await的协程没有执行完毕,添加进依赖队列
 					current_scheduler()->add_to_depend(h, handle_);
 					return;

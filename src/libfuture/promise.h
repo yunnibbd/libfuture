@@ -67,9 +67,11 @@ struct promise_t : public promise_impl_t<_Ty>
 	 * @param value co_yield右边的值
 	 * @return
 	 */
-	auto yield_value(value_type value) noexcept 
+	std::suspend_always yield_value(value_type value) noexcept
 	{
 		value_ = value;
+		auto scheduler = current_scheduler();
+		scheduler->add_to_suspend(scheduler->current_handle());
 		return std::suspend_always();
 	}
 
@@ -109,8 +111,10 @@ struct promise_t<void> : public promise_impl_t<void>
 	 * @param
 	 * @return
 	 */
-	auto yield_value() noexcept 
+	std::suspend_always yield_value() noexcept
 	{
+		auto scheduler = current_scheduler();
+		scheduler->add_to_suspend(scheduler->current_handle());
 		return std::suspend_always();
 	}
 
