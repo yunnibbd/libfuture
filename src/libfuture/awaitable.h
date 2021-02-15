@@ -4,9 +4,6 @@
 #include <iostream>
 
 template <typename _Ty>
-struct yield_awaitor;
-
-template <typename _Ty>
 class future_t;
 
 template <typename _Ty = void>
@@ -14,7 +11,7 @@ class awaitable_t
 {
 public:
 	using value_type = _Ty;
-	using promise_type = yield_awaitor<value_type>;
+	using promise_type = promise_t<value_type>;
 	using future_type = future_t<value_type>;
 	
 	using coro_handle = std::coroutine_handle<promise_type>;

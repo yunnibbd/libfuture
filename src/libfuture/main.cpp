@@ -4,29 +4,30 @@ using namespace std;
 
 future_t<> test3()
 {
-	cout << "test3" << endl;
+	cout << "test3 begin" << endl;
+	co_await 10s;
+	cout << "test3 end" << endl;
 	co_return;
 }
 
 future_t<void> test2()
 {
-	cout << "test2" << endl;
+	cout << "test2 begin" << endl;
 	co_return;
 }
 
 future_t<int> test1()
 {
-	cout << "test1" << endl;
+	cout << "test1 begin" << endl;
 	co_return 666;
 }
 
 future_t<int> test() 
 {
-	cout << "当前正在执行" << current_scheduler()->current_handle().address() << endl;
-	co_await 1s;
-	cout << "co_await 1s end" << endl;
+	//cout << "当前正在执行" << current_scheduler()->current_handle().address() << endl;
+	cout << "test begin" << endl;
 	int ret = co_await test1();
-	cout << "co_await test1 ret = " << ret << endl;
+	cout << " test end ret = " << ret << endl;
 	co_return 2;
 }
 

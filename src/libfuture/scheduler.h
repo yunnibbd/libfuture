@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <cinttypes>
 #include <cstddef>
 #include <chrono>
 
@@ -43,12 +44,15 @@ public:
 	 */
 	void destory_scheduler()
 	{
-		for (auto& handle : handle_queue_)
+		for (auto& handle : ready_queue_)
 			handle.destroy();
-		handle_queue_.clear();
+		ready_queue_.clear();
 		for (auto& entry : sleep_queue_)
 			entry.second.destroy();
 		sleep_queue_.clear();
+		for (auto& entry: depend_queue_)
+			entry.second.destroy();
+		depend_queue_.clear();
 	}
 
 	/**
@@ -59,7 +63,18 @@ public:
 	template <typename _Ty>
 	void ensure_future(_Ty &&future)
 	{
-		handle_queue_.insert(future.handle());
+		ready_queue_.insert(future.handle());
+	}
+
+	/**
+	 * @brief 添加协程关系依赖队列
+	 * @param handle 要等待别的协程的协程
+	 * @param dependent 被依赖的协程
+	 * @return
+	 */
+	void add_to_suspend(handle_type handle, handle_type dependent)
+	{
+		depend_queue_.insert(std::make_pair(handle, dependent));
 	}
 
 	/**
@@ -71,7 +86,7 @@ public:
 	{
 		sleep_queue_.insert(std::make_pair(msec, current_handle()));
 	}
-	
+
 	/**
 	 * @brief 开始处理所有协程，直至处理完毕
 	 * @param
@@ -79,49 +94,28 @@ public:
 	 */
 	void run_until_no_task()
 	{
-		while (!sleep_queue_.empty() || !handle_queue_.empty())
+		bool sleep_queue_empty = false;
+		bool ready_queue_empty = false;
+		bool depend_queue_empty = false;
+		while (true)
 		{
-			do
-			{
-				if (sleep_queue_.empty())
-					break;
-				auto begin = sleep_queue_.begin();
-				auto end = sleep_queue_.end();
-				auto cur_ms = utils_t::get_cur_timestamp();
-				for (; begin != end; )
-				{
-					if (begin->first <= cur_ms)
-					{
-						std::cout << "key1 = " << begin->first;
-						std::cout << ",  key2 = " << cur_ms << std::endl;
-						auto handle = begin->second;
-						if (!handle.done())
-						{
-							set_current_handle(handle);
-							handle.resume();
-						}
-						begin = sleep_queue_.erase(begin);
-					}
-					break;
-				}
-			} while (0);
+			if (update_sleep_queue())
+				sleep_queue_empty = true;
+			else
+				sleep_queue_empty = false;
 
-			auto begin = handle_queue_.begin();
-			auto end = handle_queue_.end();
-			for (; begin != end; )
-			{
-				do
-				{
-					if (begin->done())
-					{
-						begin->destroy();
-						break;
-					}
-					set_current_handle(*begin);
-					begin->resume();
-				} while (0);
-				begin = handle_queue_.erase(begin);
-			}
+			if (update_ready_queue())
+				ready_queue_empty = true;
+			else
+				ready_queue_empty = false;
+
+			if (update_depend_queue())
+				depend_queue_empty = true;
+			else
+				depend_queue_empty = false;
+
+			if (sleep_queue_empty && ready_queue_empty && depend_queue_empty)
+				break;
 		}
 	}
 	
@@ -146,12 +140,101 @@ public:
 	}
 private:
 	scheduler_t() {}
+	
+	/**
+	 * @brief 调度休眠队列
+	 * @param
+	 * @return bool sleep_queue_是否为空
+	 */
+	bool update_sleep_queue()
+	{
+		if (sleep_queue_.empty())
+			return true;
+		auto begin = sleep_queue_.begin();
+		auto end = sleep_queue_.end();
+		auto cur_ms = utils_t::get_cur_timestamp();
+		for (; begin != end; )
+		{
+			if (begin->first <= cur_ms)
+			{
+				auto handle = begin->second;
+				if (!handle.done())
+				{
+					set_current_handle(handle);
+					handle.resume();
+				}
+				begin = sleep_queue_.erase(begin);
+			}
+			break;
+		}
+		return false;
+	}
 
+	/**
+	 * @brief 调度预备队列
+	 * @param
+	 * @return bool ready_queue是否为空
+	 */
+	bool update_ready_queue()
+	{
+		if (ready_queue_.empty())
+			return true;
+		auto begin = ready_queue_.begin();
+		auto end = ready_queue_.end();
+		for (; begin != end; )
+		{
+			do
+			{
+				if (begin->done())
+				{
+					begin->destroy();
+					break;
+				}
+				set_current_handle(*begin);
+				begin->resume();
+			} while (0);
+			begin = ready_queue_.erase(begin);
+		}
+		return false;
+	}
+
+	/**
+	 * @brief 调度依赖队列
+	 * @param
+	 * @return bool depend_queue是否为空
+	 */
+	bool update_depend_queue()
+	{
+		if (depend_queue_.empty())
+			return true;
+		auto begin = depend_queue_.begin();
+		auto end = depend_queue_.end();
+		for (; begin != end; )
+		{
+			if (begin->second.done())
+			{
+				begin->first.resume();
+				if (begin->first.done())
+				{
+					begin = depend_queue_.erase(begin);
+					continue;
+				}
+			}
+			++begin;
+		}
+
+		return false;
+	}
+
+	//调度器正在执行的协程句柄
 	handle_type current_handle_;
-	std::multiset<handle_type> handle_queue_;
+	//预备队列
+	std::set<handle_type> ready_queue_;
+	//依赖队列
+	std::multimap<handle_type, handle_type> depend_queue_;
+	//休眠队列
 	std::multimap<uint64_t, handle_type> sleep_queue_;
 };
-
 
 /**
  * @brief 获得全局scheduler指针

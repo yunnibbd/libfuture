@@ -19,9 +19,9 @@ public:
 
 	explicit future_impl_t(coro_handle handle) : handle_(handle) 
 	{
-	
+		
 	}
-
+	
 	/**
 	 * @brief co_await之前调用
 	 * @param
@@ -43,14 +43,23 @@ public:
 		do
 		{
 			if (!handle_)
-				//表示当前是awaitable返回的future被resume了, 到这里还不满足条件去resume
+				//当前是一个awaitable对象
 				break;
 
-			if (!handle_.done())
+			do
 			{
-				current_scheduler()->set_current_handle(handle_);
-				handle_.resume();
-			}
+				if (!handle_.done())
+				{
+					current_scheduler()->set_current_handle(handle_);
+					handle_.resume();
+					if (handle_.done())
+						//被co_await的协程执行完毕,执行调用者协程
+						break;
+					//被co_await的协程没有执行完毕,添加进依赖队列
+					current_scheduler()->add_to_suspend(h, handle_);
+					return;
+				}
+			} while (0);
 
 			if (!h.done())
 			{
@@ -134,11 +143,6 @@ public:
 
 	explicit future_t(coro_handle handle) : 
 		future_impl_t<void>(handle)
-	{
-
-	}
-
-	~future_t()
 	{
 
 	}
