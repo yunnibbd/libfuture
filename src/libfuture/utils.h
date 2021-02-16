@@ -1,8 +1,9 @@
 ﻿#ifndef __UTILST_H__
 #define __UTILST_H__
+#include "export_api.h"
 #include <cinttypes>
 
-class utils_t
+class LIBFUTURE_API utils_t
 {
 public:
 	/**

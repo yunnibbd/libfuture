@@ -27,6 +27,11 @@ public:
 	awaitable_t& operator = (const awaitable_t&) noexcept = default;
 	awaitable_t& operator = (awaitable_t&&) = default;
 
+	/**
+	 * @brief 返回一个空handle的future_t对象
+	 * @param
+	 * @return future_type futuret_t对象
+	 */
 	future_type get_future()
 	{
 		return future_type();
@@ -62,11 +67,21 @@ public:
 		std::cout << 1 << std::endl;
 	}
 
+	/**
+	 * @brief 设置当前handle
+	 * @param h 待设置的handle
+	 * @return
+	 */
 	void set_value(std::coroutine_handle<> h) const
 	{
 		handle_ = h;
 	}
 
+	/**
+	 * @brief 获得当前awaitable对象所持有的handle
+	 * @param
+	 * @return coro_handle 持有的handle
+	 */
 	coro_handle handle() const noexcept
 	{
 		return handle_;

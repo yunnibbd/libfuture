@@ -36,12 +36,39 @@
     <ClInclude Include="utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="clog.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="error_code.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="export_api.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="socket.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="iocp.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="epoll.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="socket.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="iocp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="epoll.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

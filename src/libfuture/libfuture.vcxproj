@@ -144,15 +144,24 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="awaitable.h" />
+    <ClInclude Include="epoll.h" />
+    <ClInclude Include="iocp.h" />
+    <ClInclude Include="clog.h" />
+    <ClInclude Include="error_code.h" />
+    <ClInclude Include="export_api.h" />
     <ClInclude Include="future.h" />
     <ClInclude Include="libfuture.h" />
     <ClInclude Include="promise.h" />
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="sleep.h" />
+    <ClInclude Include="socket.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="epoll.cpp" />
+    <ClCompile Include="iocp.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="socket.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

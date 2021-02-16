@@ -1,20 +1,34 @@
-﻿#include "ciocp.h"
+﻿#include "iocp.h"
 #include "clog.h"
 
 #ifdef _WIN32
 
-CIOCP::CIOCP()
+/**
+ * @brief 构造
+ * @param
+ * @return
+ */
+iocp_t::iocp_t()
 {
 
 }
 
-CIOCP::~CIOCP()
+/**
+ * @brief 析构,在之中调用销毁iocp
+ * @param
+ * @return
+ */
+iocp_t::~iocp_t()
 {
-	Destory();
+	destory();
 }
 
-//将AcceptEX函数加载到内存中
-bool CIOCP::LoadFunc(int ListenSocket)
+/**
+ * @brief 将_AcceptE和_lpfnGetAcceptExSockaddrs函数加载到内存中
+ * @param Listenint 关联的监听sockfd
+ * @return bool 时候加载成功
+ */
+bool iocp_t::load_func(int ListenSocket)
 {
 	if (SOCK_NOT_INIT != listen_sock_)
 	{
@@ -55,8 +69,16 @@ bool CIOCP::LoadFunc(int ListenSocket)
 
 static int addr_size = sizeof(sockaddr_in);
 
-//获得近端地址
-void CIOCP::GetAddr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len)
+/**
+ * @brief 获得近端地址
+ * @param pIoData IO_DATA_BASE数据缓冲
+ * @param l_addr 近端地址
+ * @param l_len 近端地址长度
+ * @param r_addr 远端地址
+ * @param r_len 远端地址长度
+ * @return
+ */
+void iocp_t::get_addr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len)
 {
 	_lpfnGetAcceptExSockaddrs(pIoData->wsaBuff.buf,
 		0,
@@ -65,20 +87,28 @@ void CIOCP::GetAddr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, socka
 		(struct sockaddr**)&r_addr, &r_len);
 }
 
-//创建一个IO完成端口(IOCP)
-int CIOCP::Create()
+/**
+ * @brief 创建一个IO完成端口
+ * @param
+ * @return int 成功返回完成端口句柄,失败返回-1
+ */
+int iocp_t::create()
 {
 	completion_port_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 	if (NULL == completion_port_)
 	{
-		LOG_WARNING("CIOCP create failed with error %d\n", GetLastError());
+		LOG_WARNING("iocp_t create failed with error %d\n", GetLastError());
 		return -1;
 	}
 	return 0;
 }
 
-//销毁IOCP
-void CIOCP::Destory()
+/**
+ * @brief 销毁IOCP
+ * @param
+ * @return
+ */
+void iocp_t::destory()
 {
 	if (completion_port_)
 	{
@@ -87,32 +117,45 @@ void CIOCP::Destory()
 	}
 }
 
-//关联文件sockfd和IOCP
-HANDLE CIOCP::Reg(int sockfd)
+/**
+ * @brief 关联文件sockfd和IOCP
+ * @param sockfd 待关联的套接字
+ * @return HANDLE 返回句柄
+ */
+HANDLE iocp_t::reg(int sockfd)
 {
 	auto ret = CreateIoCompletionPort((HANDLE)sockfd, completion_port_, (ULONG_PTR)sockfd, 0);
 	if (NULL == ret)
 	{
-		LOG_WARNING("CIOCP reg sockfd failed with error %d\n", GetLastError());
+		LOG_WARNING("iocp_t reg sockfd failed with error %d\n", GetLastError());
 		return NULL;
 	}
 	return ret;
 }
 
-//关联自定义数据地址和IOCP
-HANDLE CIOCP::Reg(int sockfd, void* ptr)
+/**
+ * @brief 关联自定义数据地址和IOCP
+ * @param sockfd 待关联的套接字
+ * @param ptr 待关联的指针
+ * @return HANDLE 返回句柄
+ */
+HANDLE iocp_t::reg(int sockfd, void* ptr)
 {
 	auto ret = CreateIoCompletionPort((HANDLE)sockfd, completion_port_, (ULONG_PTR)ptr, 0);
 	if (NULL == ret)
 	{
-		LOG_WARNING("CIOCP reg ptr failed with error %d\n", GetLastError());
+		LOG_WARNING("iocp_t reg ptr failed with error %d\n", GetLastError());
 		return NULL;
 	}
 	return ret;
 }
 
-//投递接收链接任务
-bool CIOCP::PostAccept(IO_DATA_BASE* pIoData)
+/**
+ * @brief 投递接收链接任务
+ * @param pIoData 数据缓冲区
+ * @return bool 是否投递任务成功
+ */
+bool iocp_t::post_accept(IO_DATA_BASE* pIoData)
 {
 	if (!_AcceptEx)
 	{
@@ -160,8 +203,12 @@ bool CIOCP::PostAccept(IO_DATA_BASE* pIoData)
 	return true;
 }
 
-//投递接收数据任务
-bool CIOCP::PostRecv(IO_DATA_BASE* pIoData)
+/**
+ * @brief 投递接收数据任务
+ * @param pIoData 数据缓冲区
+ * @return bool 是否投递任务成功
+ */
+bool iocp_t::post_recv(IO_DATA_BASE* pIoData)
 {
 	pIoData->iotype = IO_TYPE::RECV;
 	DWORD flags = 0;
@@ -187,15 +234,19 @@ bool CIOCP::PostRecv(IO_DATA_BASE* pIoData)
 				//socket已经被关闭, 这里是心跳检测主动服务端主动关的
 				return false;
 			}
-			LOG_WARNING("CIOCP WSARecv failed with error %d\n", err);
+			LOG_WARNING("iocp_t WSARecv failed with error %d\n", err);
 			return false;
 		}
 	}
 	return true;
 }
 
-//投递发送数据任务
-bool CIOCP::PostSend(IO_DATA_BASE* pIoData)
+/**
+ * @brief 投递发送数据任务
+ * @param pIoData 数据缓冲区
+ * @return bool 是否投递任务成功
+ */
+bool iocp_t::post_send(IO_DATA_BASE* pIoData)
 {
 	pIoData->iotype = IO_TYPE::SEND;
 	DWORD flags = 0;
@@ -216,15 +267,20 @@ bool CIOCP::PostSend(IO_DATA_BASE* pIoData)
 				//socket已经被关闭, 这里是心跳检测主动服务端主动关的
 				return false;
 			}
-			LOG_WARNING("CIOCP WSASend failed with error %d\n", err);
+			LOG_WARNING("iocp_t WSASend failed with error %d\n", err);
 			return false;
 		}
 	}
 	return true;
 }
 
-//获取所有任务的状态
-int CIOCP::Wait(IO_EVENT& ioEvent, unsigned int timeout)
+/**
+ * @brief 获取所有任务的状态
+ * @param ioEvent 本次的任务类型
+ * @param timeout 本次等待的最大事件 毫秒
+ * @return int 返回等待的结果
+ */
+int iocp_t::wait(IO_EVENT& ioEvent, unsigned int timeout)
 {
 	ioEvent.bytesTrans = 0;
 	ioEvent.pIOData = NULL;
@@ -252,7 +308,7 @@ int CIOCP::Wait(IO_EVENT& ioEvent, unsigned int timeout)
 			//主动断开客户端连接
 			return 1;
 		}
-		LOG_WARNING(" CIOCP GetQueuedCompletionStatus falied with error %d\n", err);
+		LOG_WARNING(" iocp_t GetQueuedCompletionStatus falied with error %d\n", err);
 		return -1;
 	}
 	return 1;

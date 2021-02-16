@@ -6,12 +6,12 @@
 //作为动态库导出宏
 #ifdef _WIN32
 #ifdef CEXPORT
-#define COMMON_EXPORT __declspec(dllexport)
+#define LIBFUTURE_API __declspec(dllexport)
 #else
-#define COMMON_EXPORT
+#define LIBFUTURE_API __declspec(dllimport)
 #endif
 #else
-#define COMMON_EXPORT
+#define LIBFUTURE_API
 #endif
 
 #endif
