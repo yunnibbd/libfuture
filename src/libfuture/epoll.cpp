@@ -67,8 +67,13 @@ int epoll_t::ctl(int opt, int sockfd, uint32_t events)
 	ev.data.fd = sockfd;
 	int ret = epoll_ctl(epfd_, opt, sockfd, &ev);
 	if (ret == -1)
-	{
 		LOG_WARNING("epoll_t ctl1 failed\n");
+	if (errno == EEXIST)
+	{
+		if (epoll_ctl(epfd_, EPOLL_CTL_MOD, sockfd, &ev) == -1)
+			return -1;
+		else
+			return 0;
 	}
 	return ret;
 }

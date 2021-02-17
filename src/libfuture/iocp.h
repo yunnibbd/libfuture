@@ -1,7 +1,8 @@
-﻿#ifndef _iocp_t_H_
-#define _iocp_t_H_
+﻿#ifndef __IOCP_H__
+#define __IOCP_H__
 #include "export_api.h"
-
+#include "error_code.h"
+#include "socket.h"
 #ifdef _WIN32
 
 #ifndef USE_IOCP
@@ -13,13 +14,13 @@
 #include <Windows.h>
 #include <WinSock2.h>
 #include <MSWSock.h>
-#include "error_code.h"
 
 //对iocp的封装
 
 enum IO_TYPE
 {
 	ACCEPT = 10,
+	CONNECT,
 	RECV,
 	SEND
 };
@@ -61,6 +62,10 @@ struct IO_EVENT
 class LIBFUTURE_API iocp_t
 {
 public:
+	using AcceptExPtr = BOOL(WINAPI*)(SOCKET, SOCKET, PVOID, DWORD, DWORD, DWORD, LPDWORD, LPOVERLAPPED);
+	using ConnectExPtr = BOOL(WINAPI*)(SOCKET, const struct sockaddr*, int, PVOID, DWORD, LPDWORD, LPOVERLAPPED);
+	using GetAcceptExSockaddrsPtr = void(WINAPI*)(PVOID, DWORD, DWORD, DWORD, LPSOCKADDR*, LPINT, LPSOCKADDR*, LPINT);
+
 	/**
 	 * @brief 构造
 	 * @param
@@ -76,14 +81,14 @@ public:
 	~iocp_t();
 
 	/**
-	 * @brief 将_AcceptE和_lpfnGetAcceptExSockaddrs函数加载到内存中
-	 * @param Listenint 关联的监听sockfd
-	 * @return bool 时候加载成功
+	 * @brief 将需要使用的函数加载到内存中
+	 * @param
+	 * @return bool 是否加载成功
 	 */
-	bool load_func(int Listenint);
+	bool load_func();
 	
 	/**
-	 * @brief 获得近端地址
+	 * @brief 获得地址
 	 * @param pIoData IO_DATA_BASE数据缓冲
 	 * @param l_addr 近端地址
 	 * @param l_len 近端地址长度
@@ -127,21 +132,30 @@ public:
 	 * @param pIoData 数据缓冲区
 	 * @return bool 是否投递任务成功
 	 */
-	bool post_accept(IO_DATA_BASE* pIoData);
+	bool post_accept(IO_DATA_BASE* pIoData, int sockfd);
+
+	/**
+	 * @brief 投递连接服务端任务
+	 * @param pIoData 数据缓冲区
+	 * @param addr 地址信息
+	 * @param adde_len 地址长度
+	 * @return bool 是否投递任务成功
+	 */
+	bool post_connect(IO_DATA_BASE* pIoData, int sockfd, sockaddr *addr, int addr_len);
 
 	/**
 	 * @brief 投递接收数据任务
 	 * @param pIoData 数据缓冲区
 	 * @return bool 是否投递任务成功
 	 */
-	bool post_recv(IO_DATA_BASE* pIoData);
+	bool post_recv(IO_DATA_BASE* pIoData, int sockfd);
 
 	/**
 	 * @brief 投递发送数据任务
 	 * @param pIoData 数据缓冲区
 	 * @return bool 是否投递任务成功
 	 */
-	bool post_send(IO_DATA_BASE* pIoData);
+	bool post_send(IO_DATA_BASE* pIoData, int sockfd);
 
 	/**
 	 * @brief 获取所有任务的状态
@@ -152,13 +166,13 @@ public:
 	int wait(IO_EVENT& ioEvent, unsigned int timeout = INFINITE);
 private:
 	//接收客户端函数指针
-	LPFN_ACCEPTEX _AcceptEx = NULL;
+	static AcceptExPtr s_acceptEx;
+	//连接服务端函数指针
+	static ConnectExPtr s_connectEx;
 	//获得地址函数指针
-	LPFN_GETACCEPTEXSOCKADDRS _lpfnGetAcceptExSockaddrs;
+	static GetAcceptExSockaddrsPtr s_getAcceptExSockaddrs;
 	//IOCP完成端口
 	HANDLE completion_port_ = NULL;
-	//监听的套接字
-	int listen_sock_ = SOCK_NOT_INIT;
 };
 
 #endif //#ifdef _WIN32

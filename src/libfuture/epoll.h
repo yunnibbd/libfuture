@@ -3,14 +3,13 @@
 
 #if __linux__
 #include "export_api.h"
+#include "include.h"
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/types.h>
 #include <sys/epoll.h>
 #include <string.h>
 #include <errno.h>
-
-class CClient;
 
 /**
  * @brief 对epoll的封装

@@ -3,6 +3,10 @@
 
 #ifdef _WIN32
 
+iocp_t::AcceptExPtr iocp_t::s_acceptEx = NULL;
+iocp_t::ConnectExPtr iocp_t::s_connectEx = NULL;
+iocp_t::GetAcceptExSockaddrsPtr iocp_t::s_getAcceptExSockaddrs = NULL;
+
 /**
  * @brief 构造
  * @param
@@ -10,7 +14,7 @@
  */
 iocp_t::iocp_t()
 {
-
+	
 }
 
 /**
@@ -24,45 +28,36 @@ iocp_t::~iocp_t()
 }
 
 /**
- * @brief 将_AcceptE和_lpfnGetAcceptExSockaddrs函数加载到内存中
- * @param Listenint 关联的监听sockfd
- * @return bool 时候加载成功
+ * @brief 将需要使用的函数加载到内存中
+ * @param
+ * @return bool 是否加载成功
  */
-bool iocp_t::load_func(int ListenSocket)
+bool iocp_t::load_func()
 {
-	if (SOCK_NOT_INIT != listen_sock_)
+	if (!s_acceptEx || !s_connectEx || !s_getAcceptExSockaddrs)
 	{
-		LOG_WARNING("loadAcceptEX listen_sock_ != INVALID_SOCKET\n");
-		return false;
-	}
-	if (_AcceptEx)
-	{
-		LOG_WARNING("loadAcceptEX _AcceptEx != NULL\n");
-		return false;
-	}
-	listen_sock_ = ListenSocket;
-	GUID GuidAcceptEx = WSAID_ACCEPTEX;
-	DWORD dwBytes = 0;
-	int iResult = WSAIoctl(ListenSocket, SIO_GET_EXTENSION_FUNCTION_POINTER,
-		&GuidAcceptEx, sizeof(GuidAcceptEx),
-		&_AcceptEx, sizeof(_AcceptEx),
-		&dwBytes, NULL, NULL);
-	if (iResult == SOCKET_ERROR) 
-	{
-		LOG_WARNING("WSAIoctl failed with error: %u\n", WSAGetLastError());
-		return false;
-	}
-	GUID guidGetAcceptExSockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
-	iResult = WSAIoctl(ListenSocket, SIO_GET_EXTENSION_FUNCTION_POINTER,
-		&guidGetAcceptExSockaddrs,
-		sizeof(guidGetAcceptExSockaddrs),
-		&_lpfnGetAcceptExSockaddrs,
-		sizeof(_lpfnGetAcceptExSockaddrs),
-		&dwBytes, NULL, NULL);
-	if (iResult == SOCKET_ERROR) 
-	{
-		LOG_WARNING("WSAIoctl failed with error: %u\n", WSAGetLastError());
-		return false;
+		GUID acceptex = WSAID_ACCEPTEX;
+		GUID connectex = WSAID_CONNECTEX;
+		GUID getacceptexsockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
+		socket_t s(AF_INET, SOCK_STREAM, 0);
+
+		if (INVALID_SOCKET == s.sockfd())
+			return false;
+
+		int fd = s.sockfd();
+		DWORD bytes = 0;
+
+		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &acceptex, sizeof(acceptex),
+			&s_acceptEx, sizeof(s_acceptEx), &bytes, NULL, NULL))
+			return false;
+
+		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &connectex, sizeof(connectex),
+			&s_connectEx, sizeof(s_connectEx), &bytes, NULL, NULL))
+			return false;
+
+		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &getacceptexsockaddrs, sizeof(getacceptexsockaddrs),
+			&s_getAcceptExSockaddrs, sizeof(s_getAcceptExSockaddrs), &bytes, NULL, NULL))
+			return false;
 	}
 	return true;
 }
@@ -70,7 +65,7 @@ bool iocp_t::load_func(int ListenSocket)
 static int addr_size = sizeof(sockaddr_in);
 
 /**
- * @brief 获得近端地址
+ * @brief 获得地址
  * @param pIoData IO_DATA_BASE数据缓冲
  * @param l_addr 近端地址
  * @param l_len 近端地址长度
@@ -80,11 +75,13 @@ static int addr_size = sizeof(sockaddr_in);
  */
 void iocp_t::get_addr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len)
 {
-	_lpfnGetAcceptExSockaddrs(pIoData->wsaBuff.buf,
-		0,
-		addr_size, addr_size,
-		(struct sockaddr**)&l_addr, &l_len,
-		(struct sockaddr**)&r_addr, &r_len);
+	if (!s_getAcceptExSockaddrs)
+		return;
+	s_getAcceptExSockaddrs(pIoData->wsaBuff.buf,
+					       0,
+						   addr_size, addr_size,
+						   (struct sockaddr**)&l_addr, &l_len,
+						   (struct sockaddr**)&r_addr, &r_len);
 }
 
 /**
@@ -153,11 +150,12 @@ HANDLE iocp_t::reg(int sockfd, void* ptr)
 /**
  * @brief 投递接收链接任务
  * @param pIoData 数据缓冲区
+ * @param sockfd 监听套接字
  * @return bool 是否投递任务成功
  */
-bool iocp_t::post_accept(IO_DATA_BASE* pIoData)
+bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int sockfd)
 {
-	if (!_AcceptEx)
+	if (!s_acceptEx)
 	{
 		LOG_WARNING("postAccept _AcceptEX is NULL\n");
 		return false;
@@ -169,10 +167,10 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData)
 			一条消息(大小随意)后，IOCP才会告诉程序这个客户端连接了
 		? 为什么第三个参数这样写
 			ack: 远端地址和本地地址都会存储在buffer尾部，
-				而远端地址和本地地址的大小都是sizeof(sockaddr_in) + 16,
+			s	而远端地址和本地地址的大小都是sizeof(sockaddr_in) + 16,
 				剩下960字节可用
 	*/
-	if (FALSE == _AcceptEx(listen_sock_,
+	if (FALSE == s_acceptEx(sockfd,
 		pIoData->sockfd,
 		pIoData->wsaBuff.buf,
 		//sizeof(ioData.buffer) - (sizeof(sockaddr_in) + 16) * 2,
@@ -204,11 +202,35 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData)
 }
 
 /**
- * @brief 投递接收数据任务
+ * @brief 投递连接服务端任务
  * @param pIoData 数据缓冲区
+ * @param sockfd 
+ * @param addr 地址信息
+ * @param adde_len 地址长度
  * @return bool 是否投递任务成功
  */
-bool iocp_t::post_recv(IO_DATA_BASE* pIoData)
+bool iocp_t::post_connect(IO_DATA_BASE* pIoData, int sockfd, sockaddr* addr, int addr_len)
+{
+	pIoData->iotype = IO_TYPE::CONNECT;
+	if (FALSE == s_connectEx(sockfd, (PSOCKADDR)addr, addr_len,
+		pIoData->wsaBuff.buf, 1, NULL, &pIoData->overlapped))
+	{
+		int errCode = WSAGetLastError();
+		if (errCode != ERROR_IO_PENDING)
+		{
+			LOG_WARNING("post_connect falied with error %d\n", errCode);
+			return false;
+		}
+	}
+}
+
+/**
+ * @brief 投递接收数据任务
+ * @param pIoData 数据缓冲区
+ * @param 数据接收源
+ * @return bool 是否投递任务成功
+ */
+bool iocp_t::post_recv(IO_DATA_BASE* pIoData, int sockfd)
 {
 	pIoData->iotype = IO_TYPE::RECV;
 	DWORD flags = 0;
@@ -244,9 +266,10 @@ bool iocp_t::post_recv(IO_DATA_BASE* pIoData)
 /**
  * @brief 投递发送数据任务
  * @param pIoData 数据缓冲区
+ * @param sockfd 数据发送目的地
  * @return bool 是否投递任务成功
  */
-bool iocp_t::post_send(IO_DATA_BASE* pIoData)
+bool iocp_t::post_send(IO_DATA_BASE* pIoData, int sockfd)
 {
 	pIoData->iotype = IO_TYPE::SEND;
 	DWORD flags = 0;

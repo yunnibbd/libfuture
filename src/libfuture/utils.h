@@ -12,6 +12,9 @@ public:
 	 * @return
 	 */
 	static uint64_t get_cur_timestamp();
+
+private:
+	utils_t() {}
 };
 
 #endif

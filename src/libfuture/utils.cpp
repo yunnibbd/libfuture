@@ -1,5 +1,13 @@
 ﻿#include "utils.h"
 #include <chrono>
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <unistd.h>
+#endif
 using namespace std;
 using namespace chrono;
 

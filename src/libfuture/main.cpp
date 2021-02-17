@@ -13,7 +13,7 @@ future_t<> test3()
 future_t<void> test2()
 {
 	cout << "test2 begin" << endl;
-	co_await test3();
+	//co_await test3();
 	cout << "test 2 end" << endl;
 	co_return;
 }
@@ -31,14 +31,13 @@ future_t<int> test()
 {
 	//cout << "当前正在执行" << current_scheduler()->current_handle().address() << endl;
 	cout << "test begin" << endl;
-	//int ret = co_await test1();
-	//co_await 1s;
+	int ret = co_await test1();
+	co_await 1s;
+	cout << "test end ret = " << ret << endl;
 
-	cout << "test before co_yield" << endl;
+	/*cout << "test before co_yield" << endl;
 	co_yield 1;
-	cout << "test after co_yield" << endl;
-
-	//cout << "test end ret = " << ret << endl;
+	cout << "test after co_yield" << endl;*/
 	co_return 3;
 }
 

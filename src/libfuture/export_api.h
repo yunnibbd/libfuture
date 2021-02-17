@@ -8,7 +8,7 @@
 #ifdef CEXPORT
 #define LIBFUTURE_API __declspec(dllexport)
 #else
-#define LIBFUTURE_API __declspec(dllimport)
+#define LIBFUTURE_API /*__declspec(dllimport)*/
 #endif
 #else
 #define LIBFUTURE_API

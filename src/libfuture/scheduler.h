@@ -2,6 +2,8 @@
 #define __SCHEDULE_H__
 #include "future.h"
 #include "utils.h"
+#include "iocp.h"
+#include "socket.h"
 #include <list>
 #include <coroutine>
 #include <iostream>
@@ -35,6 +37,16 @@ public:
 	~scheduler_t()
 	{
 		destory_scheduler();
+	}
+ 
+	/**
+	 * @brief 初始化iocp对象
+	 * @param
+	 * @return
+	 */
+	void init_iocp()
+	{
+		iocp_.create();
 	}
 
 	/**
@@ -139,7 +151,15 @@ public:
 		return current_handle_;
 	}
 private:
-	scheduler_t() {}
+	/**
+	 * @brief 构造
+	 * @param
+	 * @return
+	 */
+	scheduler_t() 
+	{
+		iocp_.create();
+	}
 	
 	/**
 	 * @brief 调度休眠队列
@@ -168,7 +188,10 @@ private:
 					for (; start != stop; )
 					{
 						if (!start->second.done())
+						{
 							can_trigger = false;
+							break;
+						}
 						++start;
 					}
 					if (can_trigger)
@@ -226,7 +249,19 @@ private:
 		auto end = depend_queue_.end();
 		for (; begin != end; )
 		{
-			if (begin->second.done())
+			bool can_trigger = true;
+			auto start = depend_queue_.lower_bound(begin->first);
+			auto stop = depend_queue_.upper_bound(begin->first);
+			for (; start != end; )
+			{
+				if (!start->second.done())
+				{
+					can_trigger = false;
+					break;
+				}
+				++start;
+			}
+			if (can_trigger)
 			{
 				if (!begin->first.done())
 				{
@@ -243,12 +278,12 @@ private:
 					continue;
 				}
 			}
-			++begin;
+			begin = stop;
 		}
 
 		return false;
 	}
-
+	
 	/**
 	 * @brief 调度挂起队列
 	 * @param
@@ -270,8 +305,9 @@ private:
 			}
 			++begin;
 		}
+		return false;
 	}
-
+	
 	//调度器正在执行的协程句柄
 	handle_type current_handle_;
 	//预备队列
@@ -284,6 +320,8 @@ private:
 	std::multimap<uint64_t, handle_type> sleep_queue_;
 	//休眠队列中的协程
 	std::set<handle_type> in_sleep_queue_;
+	//关于socket通信的对象
+	iocp_t iocp_;
 };
 
 /**
