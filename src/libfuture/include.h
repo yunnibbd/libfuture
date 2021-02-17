@@ -30,6 +30,7 @@ typedef int socket_unread_t;
 #endif
 
 #include <cstring>
+#include <cstdlib>
 #include <cstdio>
 
 #endif

@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClInclude Include="awaitable.h" />
     <ClInclude Include="buffer.h" />
+    <ClInclude Include="common.h" />
     <ClInclude Include="epoll.h" />
     <ClInclude Include="event.h" />
     <ClInclude Include="include.h" />
@@ -167,6 +168,7 @@
     <ClCompile Include="epoll.cpp" />
     <ClCompile Include="iocp.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="scheduler.cpp" />
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
