@@ -1,5 +1,6 @@
 ﻿#include "iocp.h"
 #include "clog.h"
+#include <cinttypes>
 
 #ifdef _WIN32
 
@@ -150,10 +151,10 @@ HANDLE iocp_t::reg(int sockfd, void* ptr)
 /**
  * @brief 投递接收链接任务
  * @param pIoData 数据缓冲区
- * @param sockfd 监听套接字
+ * @param listen_socket 监听套接字
  * @return bool 是否投递任务成功
  */
-bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int sockfd)
+bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int listen_socket)
 {
 	if (!s_acceptEx)
 	{
@@ -170,7 +171,7 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int sockfd)
 			s	而远端地址和本地地址的大小都是sizeof(sockaddr_in) + 16,
 				剩下960字节可用
 	*/
-	if (FALSE == s_acceptEx(sockfd,
+	if (FALSE == s_acceptEx(listen_socket,
 		pIoData->sockfd,
 		pIoData->wsaBuff.buf,
 		//sizeof(ioData.buffer) - (sizeof(sockaddr_in) + 16) * 2,
@@ -204,7 +205,7 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int sockfd)
 /**
  * @brief 投递连接服务端任务
  * @param pIoData 数据缓冲区
- * @param sockfd 
+ * @param sockfd 要连接的套接字
  * @param addr 地址信息
  * @param adde_len 地址长度
  * @return bool 是否投递任务成功
@@ -222,6 +223,7 @@ bool iocp_t::post_connect(IO_DATA_BASE* pIoData, int sockfd, sockaddr* addr, int
 			return false;
 		}
 	}
+	return true;
 }
 
 /**
@@ -303,7 +305,7 @@ bool iocp_t::post_send(IO_DATA_BASE* pIoData, int sockfd)
  * @param timeout 本次等待的最大事件 毫秒
  * @return int 返回等待的结果
  */
-int iocp_t::wait(IO_EVENT& ioEvent, unsigned int timeout)
+int iocp_t::wait(IO_EVENT& ioEvent, unsigned long timeout)
 {
 	ioEvent.bytesTrans = 0;
 	ioEvent.pIOData = NULL;
@@ -317,20 +319,14 @@ int iocp_t::wait(IO_EVENT& ioEvent, unsigned int timeout)
 	{
 		int err = GetLastError();
 		if (WAIT_TIMEOUT == err)
-		{
 			//超时
 			return 0;
-		}
 		else if (ERROR_NETNAME_DELETED == err)
-		{
 			//客户端断开连接
 			return 1;
-		}
 		else if (ERROR_CONNECTION_ABORTED == err)
-		{
 			//主动断开客户端连接
 			return 1;
-		}
 		LOG_WARNING(" iocp_t GetQueuedCompletionStatus falied with error %d\n", err);
 		return -1;
 	}

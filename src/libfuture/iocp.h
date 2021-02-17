@@ -130,13 +130,15 @@ public:
 	/**
 	 * @brief 投递接收链接任务
 	 * @param pIoData 数据缓冲区
+	 * @param listen_socket 监听套接字
 	 * @return bool 是否投递任务成功
 	 */
-	bool post_accept(IO_DATA_BASE* pIoData, int sockfd);
+	bool post_accept(IO_DATA_BASE* pIoData, int listen_socket);
 
 	/**
 	 * @brief 投递连接服务端任务
 	 * @param pIoData 数据缓冲区
+	 * @param sockfd 要连接的套接字
 	 * @param addr 地址信息
 	 * @param adde_len 地址长度
 	 * @return bool 是否投递任务成功
@@ -163,7 +165,7 @@ public:
 	 * @param timeout 本次等待的最大事件 毫秒
 	 * @return int 返回等待的结果
 	 */
-	int wait(IO_EVENT& ioEvent, unsigned int timeout = INFINITE);
+	int wait(IO_EVENT& ioEvent, unsigned long timeout = INFINITE);
 private:
 	//接收客户端函数指针
 	static AcceptExPtr s_acceptEx;

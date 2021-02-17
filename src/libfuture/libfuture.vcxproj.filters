@@ -63,6 +63,9 @@
     <ClInclude Include="include.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="buffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -78,6 +81,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="epoll.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="buffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -15,6 +15,7 @@ typedef unsigned long socket_unread_t;
 #pragma comment(lib, "ws2_32.lib")
 #else
 typedef int socket_unread_t;
+#define INFINITE -1
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>

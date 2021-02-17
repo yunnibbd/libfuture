@@ -140,7 +140,7 @@ int socket_t::set_non_block()
 	int ret = ioctlsocket(sockfd_, FIONBIO, &mode);
 
 #else
-	int oldFlags = fcntl(m_fd, F_GETFL);
+	int oldFlags = fcntl(sockfd_, F_GETFL);
 	int ret = fcntl(sockfd_, F_SETFL, oldFlags | O_NONBLOCK);
 
 #endif

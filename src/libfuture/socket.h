@@ -3,6 +3,9 @@
 #include "export_api.h"
 #include "noncopyable.h"
 #include "include.h"
+#define BUFFER_LEN 1024
+
+class buffer_t;
 
 class socket_t : public noncopyable
 {
@@ -43,8 +46,16 @@ public:
 
 	int close_on_exec();
 
+	void set_send_buf(buffer_t* buffer) { p_send_buf_ = buffer;  }
+	buffer_t* p_send_buf() { return p_send_buf_; }
+
+	void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
+	buffer_t* p_recv_buf() { return p_recv_buf_; }
 private:
 	int sockfd_;
+	buffer_t* p_send_buf_ = nullptr;
+	buffer_t* p_recv_buf_ = nullptr;
+	char accept_buffer_[BUFFER_LEN] = { 0 };
 };
 
 #endif

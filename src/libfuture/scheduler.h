@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "iocp.h"
 #include "socket.h"
+#include "clog.h"
 #include <list>
 #include <coroutine>
 #include <iostream>
@@ -37,16 +38,6 @@ public:
 	~scheduler_t()
 	{
 		destory_scheduler();
-	}
- 
-	/**
-	 * @brief 初始化iocp对象
-	 * @param
-	 * @return
-	 */
-	void init_iocp()
-	{
-		iocp_.create();
 	}
 
 	/**
@@ -93,13 +84,23 @@ public:
 	}
 
 	/**
-	 * @brief 添加挂起队列
+	 * @brief 添加进挂起队列
 	 * @param handle 调用co_yield的协程句柄
 	 * @return
 	 */
 	void add_to_suspend(handle_type handle)
 	{
 		suspend_queue_.insert(handle);
+	}
+
+	/**
+	 * @brief 添加进socketio队列
+	 * @param socket 要通信的socket
+	 * @return
+	 */
+	void add_to_sockio(socket_t *socket)
+	{
+		socketio_queue_.insert(std::make_pair(socket, current_handle()));
 	}
 
 	/**
@@ -159,6 +160,7 @@ private:
 	scheduler_t() 
 	{
 		iocp_.create();
+		iocp_.load_func();
 	}
 	
 	/**
@@ -205,6 +207,130 @@ private:
 			}
 			break;
 		}
+		return false;
+	}
+
+	/**
+	 * @brief 调度socketio队列
+	 * @param
+	 * @return bool socketio_queue是否为空
+	 */
+	bool update_socketio_queue()
+	{
+		if (socketio_queue_.empty())
+			return true;
+		int64_t sleep_msec = INFINITE;
+		IO_EVENT io_event;
+		IO_DATA_BASE io_data = { 0 };
+		
+		while (true)
+		{
+			if (!sleep_queue_.empty())
+				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
+			if (sleep_msec < -1)
+				sleep_msec = INFINITE;
+			int ret = iocp_.wait(io_event, sleep_msec);
+			if(ret < 0)
+			{
+				//IOCP出错
+				LOG_ERROR("update_socketio_queue::iocp error\n");
+				break;
+			}
+			else if (ret == 0)
+				//没有事件
+				break;
+
+			switch (io_event.pIOData->iotype)
+			{
+				case IO_TYPE::RECV:
+				{
+					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+					auto iter = socketio_queue_.find(socket);
+					if (iter != socketio_queue_.end())
+					{
+						ready_queue_.insert(iter->second);
+						socketio_queue_.erase(iter);
+					}
+				}
+				break;
+				case IO_TYPE::SEND:
+				{
+					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+					auto iter = socketio_queue_.find(socket);
+					if (iter != socketio_queue_.end())
+					{
+						ready_queue_.insert(iter->second);
+						socketio_queue_.erase(iter);
+					}
+				}
+				break;
+				case IO_TYPE::ACCEPT:
+				{
+					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+					auto iter = socketio_queue_.find(socket);
+					if (iter != socketio_queue_.end())
+					{
+						ready_queue_.insert(iter->second);
+						socketio_queue_.erase(iter);
+					}
+				}
+				break;
+				case IO_TYPE::CONNECT:
+				{
+					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+					auto iter = socketio_queue_.find(socket);
+					if (iter != socketio_queue_.end())
+					{
+						ready_queue_.insert(iter->second);
+						socketio_queue_.erase(iter);
+					}
+				}
+				break;
+				default:
+					break;
+			}
+			
+			//if (IO_TYPE::RECV == io_type)
+			//{//接收到了客户端数据
+			//	auto pclient = (CClient*)io_event_.data.ptr;
+			//	if (io_event_.bytesTrans <= 0)
+			//	{//客户端断开
+			//		LOG_DEBUG("RECV close sockfd=%d, bytesTrans=%d\n", (int)io_event_.pIOData->sockfd, io_event_.bytesTrans);
+			//		clients_.erase(pclient);
+			//		//触发客户端离开事件
+			//		OnLeave(pclient);
+			//		break;
+			//	}
+			//	//告诉接收数据的客户端本次接收到了多少数据，用于接收缓冲区的数据位置的偏移
+			//	pclient->Recv4Iocp(io_event_.bytesTrans);
+			//	//接收消息计数
+			//	OnRecv(pclient);
+			//}
+			//else if (IO_TYPE::SEND == io_type)
+			//{//已经把数据发送出去了
+			//	auto pclient = (CClient*)io_event_.data.ptr;
+			//	if (!pclient->is_init_) break;
+			//	if (io_event_.bytesTrans <= 0)
+			//	{//客户端断开
+			//		LOG_DEBUG("SEND close sockfd=%d, bytesTrans=%d\n", (int)io_event_.pIOData->sockfd, io_event_.bytesTrans);
+			//		clients_.erase(pclient);
+			//		//触发客户端离开事件
+			//		OnLeave(pclient);
+			//		break;
+			//	}
+			//	//通知发送缓冲区发送了多少数据
+			//	pclient->Send2Iocp(io_event_.bytesTrans);
+			//}
+			//else
+			//{
+			//	auto pclient = (CClient*)io_event_.data.ptr;
+			//	LOG_INFO("IOCP get a unknow type event \n");
+			//	clients_.erase(pclient);
+			//	//触发客户端离开事件
+			//	OnLeave(pclient);
+			//}
+		}
+
 		return false;
 	}
 
@@ -316,6 +442,8 @@ private:
 	std::set<handle_type> suspend_queue_;
 	//依赖队列
 	std::multimap<handle_type, handle_type> depend_queue_;
+	//socket队列
+	std::map<socket_t *, handle_type> socketio_queue_;
 	//休眠队列
 	std::multimap<uint64_t, handle_type> sleep_queue_;
 	//休眠队列中的协程
