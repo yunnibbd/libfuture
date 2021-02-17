@@ -3,7 +3,6 @@
 #include "export_api.h"
 #include "noncopyable.h"
 #include "include.h"
-#define BUFFER_LEN 1024
 
 class buffer_t;
 
@@ -55,7 +54,6 @@ private:
 	int sockfd_;
 	buffer_t* p_send_buf_ = nullptr;
 	buffer_t* p_recv_buf_ = nullptr;
-	char accept_buffer_[BUFFER_LEN] = { 0 };
 };
 
 #endif

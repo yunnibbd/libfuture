@@ -6,6 +6,9 @@
 template <typename _Ty>
 class future_t;
 
+template <typename _Ty>
+struct promise_t;
+
 template <typename _Ty = void>
 class awaitable_t
 {

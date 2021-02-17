@@ -31,9 +31,10 @@ future_t<int> test()
 {
 	//cout << "当前正在执行" << current_scheduler()->current_handle().address() << endl;
 	cout << "test begin" << endl;
-	int ret = co_await test1();
-	co_await 1s;
-	cout << "test end ret = " << ret << endl;
+	//int ret = co_await test1();
+	co_await 10s;
+	cout << "test end" << endl;
+	//cout << "test end ret = " << ret << endl;
 
 	/*cout << "test before co_yield" << endl;
 	co_yield 1;

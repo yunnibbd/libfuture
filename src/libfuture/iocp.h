@@ -17,6 +17,11 @@
 
 //对iocp的封装
 
+//数据缓冲区大小
+#define DATA_BUFF_SIZE 1024
+//接受客户端缓冲区的大小
+#define ACCEPT_BUFFER_LEN 1024
+
 enum IO_TYPE
 {
 	ACCEPT = 10,
@@ -24,9 +29,6 @@ enum IO_TYPE
 	RECV,
 	SEND
 };
-
-//数据缓冲区大小
-#define DATA_BUFF_SIZE 1024
 
 struct IO_DATA_BASE
 {
@@ -58,6 +60,10 @@ struct IO_EVENT
 	IO_DATA_BASE* pIOData;
 	DWORD bytesTrans = 0;
 };
+
+//全局
+//char g_accept_buffer[ACCEPT_BUFFER_LEN] = { 0 };
+//IO_DATA_BASE g_io_data;
 
 class LIBFUTURE_API iocp_t
 {

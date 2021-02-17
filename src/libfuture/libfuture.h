@@ -7,7 +7,6 @@
 #include "sleep.h"
 #include "scheduler.h"
 #include "socket.h"
-#include "event.h"
 #include "utils.h"
 
 #endif

@@ -4,7 +4,9 @@
 #include "utils.h"
 #include "iocp.h"
 #include "socket.h"
+#include "event.h"
 #include "clog.h"
+#include "buffer.h"
 #include <list>
 #include <coroutine>
 #include <iostream>
@@ -59,6 +61,12 @@ public:
 		for (auto& handle : suspend_queue_)
 			handle.destroy();
 		suspend_queue_.clear();
+		for (auto& entry : socketio_queue_)
+			entry.second.destroy();
+		socketio_queue_.clear();
+		for (auto& entry : accept_socket_queue_)
+			entry.second.destroy();
+		accept_socket_queue_.clear();
 	}
 
 	/**
@@ -96,13 +104,52 @@ public:
 	/**
 	 * @brief 添加进socketio队列
 	 * @param socket 要通信的socket
+	 * @param type 本socket要进行的操作类型
 	 * @return
 	 */
-	void add_to_sockio(socket_t *socket)
+	void add_to_socketio(socket_t* socket, event_type_enum type)
 	{
-		socketio_queue_.insert(std::make_pair(socket, current_handle()));
+		int sockfd = socket->sockfd();
+		do
+		{
+			if (type == EVENT_SEND)
+			{
+				auto p_buffer = socket->p_send_buf();
+				if (!p_buffer)
+					break;
+				auto p_io_data = p_buffer->make_send_io_data(sockfd);
+				if (!p_io_data)
+					break;
+				iocp_.post_send(p_io_data, sockfd);
+			}
+			else if (type == EVENT_RECV)
+			{
+				auto p_buffer = socket->p_recv_buf();
+				if (!p_buffer)
+					break;
+				auto p_io_data = p_buffer->make_recv_io_data(sockfd);
+				if (!p_io_data)
+					break;
+				iocp_.post_recv(p_io_data, sockfd);
+			}
+
+			socketio_queue_.insert(std::make_pair(socket, current_handle()));
+		} while (0);
 	}
 
+	/*
+	 * @brief 添加进accept队列
+	 * @param socket 要通信的socket
+	 * @return
+	 */
+	/*void add_to_accept(socket_t* socket)
+	{
+		g_io_data.wsaBuff.buf = g_accept_buffer;
+		g_io_data.wsaBuff.len = ACCEPT_BUFFER_LEN;
+		iocp_.post_accept(&g_io_data, socket->sockfd());
+		accept_socket_queue_.insert(std::make_pair(socket, current_handle()));
+	}*/
+	
 	/**
 	 * @brief 添加一个需要等待到某一时刻运行的协程
 	 * @param msec 要等待的时间
@@ -124,10 +171,11 @@ public:
 	{
 		while (true)
 		{
-			if (update_sleep_queue() &&
-				update_ready_queue() &&
-				update_depend_queue() &&
-				update_suspend_queue())
+			update_ready_queue();
+			update_sleep_queue();
+			update_depend_queue();
+			update_suspend_queue();
+			if (update_socketio_queue())
 				break;
 		}
 	}
@@ -168,10 +216,8 @@ private:
 	 * @param
 	 * @return bool sleep_queue_是否为空
 	 */
-	bool update_sleep_queue()
+	void update_sleep_queue()
 	{
-		if (sleep_queue_.empty())
-			return true;
 		auto begin = sleep_queue_.begin();
 		auto end = sleep_queue_.end();
 		auto cur_ms = utils_t::get_cur_timestamp();
@@ -207,28 +253,35 @@ private:
 			}
 			break;
 		}
-		return false;
 	}
 
 	/**
-	 * @brief 调度socketio队列
+	 * @brief 调度socketio_queue_
 	 * @param
-	 * @return bool socketio_queue是否为空
+	 * @return bool 所有任务是否处理完毕
 	 */
 	bool update_socketio_queue()
 	{
-		if (socketio_queue_.empty())
-			return true;
-		int64_t sleep_msec = INFINITE;
+		int64_t sleep_msec;
 		IO_EVENT io_event;
-		IO_DATA_BASE io_data = { 0 };
 		
 		while (true)
 		{
 			if (!sleep_queue_.empty())
+			{
 				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-			if (sleep_msec < -1)
+				if (sleep_msec < -1)
+					sleep_msec = INFINITE;
+			}
+			else
+			{
+				if (ready_queue_.empty() && suspend_queue_.empty() &&
+					depend_queue_.empty() && socketio_queue_.empty())
+					//如果所有队列都为空则返回真,用于终止事件循环
+					return true;
 				sleep_msec = INFINITE;
+			}
+			std::cout << "iocp will sleep " << sleep_msec << std::endl;
 			int ret = iocp_.wait(io_event, sleep_msec);
 			if(ret < 0)
 			{
@@ -251,6 +304,9 @@ private:
 						ready_queue_.insert(iter->second);
 						socketio_queue_.erase(iter);
 					}
+					auto p_buffer = socket->p_recv_buf();
+					if (p_buffer)
+						p_buffer->read4iocp(io_event.bytesTrans);
 				}
 				break;
 				case IO_TYPE::SEND:
@@ -262,73 +318,30 @@ private:
 						ready_queue_.insert(iter->second);
 						socketio_queue_.erase(iter);
 					}
+					auto p_buffer = socket->p_send_buf();
+					if (p_buffer)
+						p_buffer->write2socket(io_event.bytesTrans);
 				}
 				break;
 				case IO_TYPE::ACCEPT:
 				{
 					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
-					auto iter = socketio_queue_.find(socket);
-					if (iter != socketio_queue_.end())
+					auto iter = accept_socket_queue_.find(socket);
+					if (iter != accept_socket_queue_.end())
 					{
 						ready_queue_.insert(iter->second);
-						socketio_queue_.erase(iter);
+						accept_socket_queue_.erase(iter);
 					}
 				}
 				break;
 				case IO_TYPE::CONNECT:
 				{
-					socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
-					auto iter = socketio_queue_.find(socket);
-					if (iter != socketio_queue_.end())
-					{
-						ready_queue_.insert(iter->second);
-						socketio_queue_.erase(iter);
-					}
+					//暂未实现
 				}
 				break;
 				default:
 					break;
 			}
-			
-			//if (IO_TYPE::RECV == io_type)
-			//{//接收到了客户端数据
-			//	auto pclient = (CClient*)io_event_.data.ptr;
-			//	if (io_event_.bytesTrans <= 0)
-			//	{//客户端断开
-			//		LOG_DEBUG("RECV close sockfd=%d, bytesTrans=%d\n", (int)io_event_.pIOData->sockfd, io_event_.bytesTrans);
-			//		clients_.erase(pclient);
-			//		//触发客户端离开事件
-			//		OnLeave(pclient);
-			//		break;
-			//	}
-			//	//告诉接收数据的客户端本次接收到了多少数据，用于接收缓冲区的数据位置的偏移
-			//	pclient->Recv4Iocp(io_event_.bytesTrans);
-			//	//接收消息计数
-			//	OnRecv(pclient);
-			//}
-			//else if (IO_TYPE::SEND == io_type)
-			//{//已经把数据发送出去了
-			//	auto pclient = (CClient*)io_event_.data.ptr;
-			//	if (!pclient->is_init_) break;
-			//	if (io_event_.bytesTrans <= 0)
-			//	{//客户端断开
-			//		LOG_DEBUG("SEND close sockfd=%d, bytesTrans=%d\n", (int)io_event_.pIOData->sockfd, io_event_.bytesTrans);
-			//		clients_.erase(pclient);
-			//		//触发客户端离开事件
-			//		OnLeave(pclient);
-			//		break;
-			//	}
-			//	//通知发送缓冲区发送了多少数据
-			//	pclient->Send2Iocp(io_event_.bytesTrans);
-			//}
-			//else
-			//{
-			//	auto pclient = (CClient*)io_event_.data.ptr;
-			//	LOG_INFO("IOCP get a unknow type event \n");
-			//	clients_.erase(pclient);
-			//	//触发客户端离开事件
-			//	OnLeave(pclient);
-			//}
 		}
 
 		return false;
@@ -337,12 +350,10 @@ private:
 	/**
 	 * @brief 调度预备队列
 	 * @param
-	 * @return bool ready_queue是否为空
+	 * @return
 	 */
-	bool update_ready_queue()
+	void update_ready_queue()
 	{
-		if (ready_queue_.empty())
-			return true;
 		auto begin = ready_queue_.begin();
 		auto end = ready_queue_.end();
 		for (; begin != end; )
@@ -359,18 +370,15 @@ private:
 			} while (0);
 			begin = ready_queue_.erase(begin);
 		}
-		return false;
 	}
 
 	/**
 	 * @brief 调度依赖队列
 	 * @param
-	 * @return bool depend_queue是否为空
+	 * @return
 	 */
-	bool update_depend_queue()
+	void update_depend_queue()
 	{
-		if (depend_queue_.empty())
-			return true;
 		auto begin = depend_queue_.begin();
 		auto end = depend_queue_.end();
 		for (; begin != end; )
@@ -406,8 +414,6 @@ private:
 			}
 			begin = stop;
 		}
-
-		return false;
 	}
 	
 	/**
@@ -415,10 +421,8 @@ private:
 	 * @param
 	 * @return bool 挂起队列是否为空
 	 */
-	bool update_suspend_queue()
+	void update_suspend_queue()
 	{
-		if (suspend_queue_.empty())
-			return true;
 		auto begin = suspend_queue_.begin();
 		auto end = suspend_queue_.end();
 		for (; begin != end; )
@@ -431,7 +435,6 @@ private:
 			}
 			++begin;
 		}
-		return false;
 	}
 	
 	//调度器正在执行的协程句柄
@@ -442,8 +445,10 @@ private:
 	std::set<handle_type> suspend_queue_;
 	//依赖队列
 	std::multimap<handle_type, handle_type> depend_queue_;
-	//socket队列
-	std::map<socket_t *, handle_type> socketio_queue_;
+	//接收socket队列
+	std::map<socket_t*, handle_type> accept_socket_queue_;
+	//socket收发消息队列
+	std::map<socket_t*, handle_type> socketio_queue_;
 	//休眠队列
 	std::multimap<uint64_t, handle_type> sleep_queue_;
 	//休眠队列中的协程
