@@ -83,45 +83,9 @@ int socket_t::recv(char* buf, const int size)
 	return ::recv(sockfd_, buf, size, 0);
 }
 
-int socket_t::recv(IOVEC_TYPE* iov, int iovcnt)
-{
-	int transBytes = 0;
-#ifdef _WIN32
-	DWORD readBytes = 0;
-	DWORD flags = 0;
-	if (WSARecv(sockfd_, iov, iovcnt, &readBytes, &flags, NULL, NULL))
-	{
-		if (WSAGetLastError() != WSAECONNABORTED)
-			transBytes = -1;
-	}
-	else
-		transBytes = readBytes;
-#else
-	transBytes = readv(m_fd, iov, iovcnt);
-#endif
-
-	return transBytes;
-}
-
 int socket_t::send(const char* buf, const int size)
 {
 	return ::send(sockfd_, buf, size, 0);
-}
-
-int socket_t::send(IOVEC_TYPE* iov, int iovcnt)
-{
-	int transBytes = 0;
-#ifdef _WIN32
-	DWORD sendBytes = 0;
-	if (WSASend(sockfd_, iov, iovcnt, &sendBytes, 0, NULL, NULL))
-		transBytes = -1;
-	else
-		transBytes = sendBytes;
-#else
-	transBytes = writev(m_fd, iov, iovcnt);
-#endif
-
-	return transBytes;
 }
 
 socket_unread_t socket_t::get_unread_byte() const

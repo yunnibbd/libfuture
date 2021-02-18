@@ -28,8 +28,8 @@ scheduler_t::~scheduler_t()
 void scheduler_t::init()
 {
 	iocp_.create();
-	iocp_.load_func(listen_socket_);
-	iocp_.reg(listen_socket_);
+	iocp_.load_func(init_socket_);
+	iocp_.reg(init_socket_);
 	io_data_.wsaBuff.buf = buffer_;
 	io_data_.wsaBuff.len = sizeof(buffer_);
 }
@@ -90,48 +90,79 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 	int sockfd = socket->sockfd();
 	do
 	{
-		if (type == EVENT_SEND)
+		switch (type)
 		{
-			auto p_buffer = socket->p_send_buf();
-			if (!p_buffer)
-				break;
-			auto p_io_data = p_buffer->make_send_io_data(sockfd);
-			if (!p_io_data)
-				break;
-			iocp_.reg(sockfd, socket);
-			iocp_.post_send(p_io_data, sockfd);
+			case EVENT_SEND:
+			{
+				auto p_buffer = socket->p_send_buf();
+				if (!p_buffer)
+					break;
+				auto p_io_data = p_buffer->make_send_io_data(sockfd);
+				if (!p_io_data)
+					break;
+				if (!socket->is_register)
+				{
+					iocp_.reg(sockfd, socket);
+					socket->is_register = true;
+				}
+				iocp_.post_send(p_io_data, sockfd);
+			}
+			break;
+			case EVENT_RECV:
+			{
+				auto p_buffer = socket->p_recv_buf();
+				if (!p_buffer)
+					break;
+				auto p_io_data = p_buffer->make_recv_io_data(sockfd);
+				if (!p_io_data)
+					break;
+				if (!socket->is_register)
+				{
+					iocp_.reg(sockfd, socket);
+					socket->is_register = true;
+				}
+				iocp_.post_recv(p_io_data, sockfd);
+			}
+			break;
+			case EVENT_ACCEPT:
+			{
+				iocp_.post_accept(&io_data_, init_socket_, sockfd);
+			}
+			break;
+			default:
+			break;
 		}
-		else if (type == EVENT_RECV)
-		{
-			auto p_buffer = socket->p_recv_buf();
-			if (!p_buffer)
-				break;
-			auto p_io_data = p_buffer->make_recv_io_data(sockfd);
-			if (!p_io_data)
-				break;
-			iocp_.reg(sockfd, socket);
-			iocp_.post_recv(p_io_data, sockfd);
-		}
-		else if (type == EVENT_ACCEPT)
-		{
-			iocp_.post_accept(&io_data_, listen_socket_, sockfd);
-		}
+
 		socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 	} while (0);
 }
 
 /*
-	* @brief 添加进accept队列
-	* @param socket 要通信的socket
-	* @return
-	*/
-	/*void add_to_accept(socket_t* socket)
-	{
-		g_io_data.wsaBuff.buf = g_accept_buffer;
-		g_io_data.wsaBuff.len = ACCEPT_BUFFER_LEN;
-		iocp_.post_accept(&g_io_data, socket->sockfd());
-		accept_socket_queue_.insert(std::make_pair(socket, current_handle()));
-	}*/
+ * @brief 添加connect事件进入socketio队列
+ * @param socket 要通信的socket
+ * @param buffer 连接上时要发送的数据
+ * @param ip 要连接的ip地址
+ * @param port 要连接的端口
+ * @return
+ */
+void scheduler_t::add_to_connect(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port)
+{
+	int sockfd = socket->sockfd();
+	auto p_buffer = socket->p_send_buf();
+	if (!p_buffer)
+		return;
+	auto p_io_data = p_buffer->make_send_io_data(sockfd);
+	if (!p_io_data)
+		return;
+	//iocp_.reg(sockfd, socket);
+	sockaddr_in serv;
+	memset(&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	serv.sin_port = htons(port);
+	serv.sin_addr.s_addr = inet_addr(ip);
+	iocp_.post_connect(p_io_data, sockfd, (sockaddr*)&serv, sizeof(serv));
+	socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
+}
 
 /**
  * @brief 添加一个需要等待到某一时刻运行的协程
@@ -268,9 +299,16 @@ bool scheduler_t::update_socketio_queue()
 				else
 					return false;
 			}
-			sleep_msec = INFINITE;
+			else
+			{
+				if (ready_queue_.empty())
+					sleep_msec = INFINITE;
+				else
+					//预备队列中有需要立马执行的协程
+					return false;
+			}
 		}
-		std::cout << "iocp will sleep " << sleep_msec << std::endl;
+		//std::cout << "iocp will sleep " << sleep_msec << std::endl;
 		int ret = iocp_.wait(io_event, sleep_msec);
 		if (ret < 0)
 		{

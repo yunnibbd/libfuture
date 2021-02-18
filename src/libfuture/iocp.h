@@ -61,10 +61,6 @@ struct IO_EVENT
 	DWORD bytesTrans = 0;
 };
 
-//全局
-//char g_accept_buffer[ACCEPT_BUFFER_LEN] = { 0 };
-//IO_DATA_BASE g_io_data;
-
 class LIBFUTURE_API iocp_t
 {
 public:

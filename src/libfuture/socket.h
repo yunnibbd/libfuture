@@ -34,11 +34,7 @@ public:
 
 	int recv(char* buf, const int size);
 
-	int recv(IOVEC_TYPE* iov, int iovcnt);
-
 	int send(const char* buf, const int size);
-
-	int send(IOVEC_TYPE* iov, int iovcnt);
 
 	int sockfd() const { return sockfd_; }
 
@@ -54,6 +50,9 @@ public:
 
 	void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
 	buffer_t* p_recv_buf() { return p_recv_buf_; }
+
+	//是否被注册
+	bool is_register = false;
 private:
 	int sockfd_;
 	buffer_t* p_send_buf_ = nullptr;

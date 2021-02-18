@@ -4,35 +4,89 @@
 #include "iocp.h"
 #include "export_api.h"
 
-//对网络数据缓冲区的封装
+/**
+ * @brief 对网络数据缓冲区的封装
+ */
 class LIBFUTURE_API buffer_t
 {
 public:
+	/**
+	 * @brief 构造,初始buffer大小为8k
+	 * @param size 初始大小
+	 * @return
+	 */
 	buffer_t(int size = 8192);
 
+	/**
+	 * @brief 析构,在里面会释放空间
+	 * @param
+	 * @return
+	 */
 	~buffer_t();
 
-	//往缓冲区例放数据
+	/**
+	 * @brief 往缓冲区里放数据
+	 * @param data 源数据
+	 * @param data_len 源数据长度
+	 * @return bool 是否存放成功
+	 */
 	bool push(const char *data, int data_len);
 
-	//将缓冲区一部分数据移除
+	/**
+	 * @brief 将缓冲区一部分数据移除
+	 * @param len 要移除的数据长度
+	 * @return
+	 */
 	void pop(int len);
 
-	//从socket中读取数据
+	/**
+	 * @brief 将缓冲区中的所有数据移除
+	 * @param
+	 * @return
+	 */
+	void clear();
+
+	/**
+	 * @brief 从socket中读取数据
+	 * @param sockfd 从哪个socket中读取数据
+	 * @return int 本次读取的长度
+	 */
 	int read4socket(int sockfd);
 
-	//往socket中写数据
+	/**
+	 * @brief 往socket中写数据
+	 * @param sockfd 往哪个socket中写数据
+	 * @return int 本次写入的数据长度
+	 */
 	int write2socket(int sockfd);
 
 #ifdef USE_IOCP
-	//所有针对iocp的数据存储和读取
+	/**
+	 * @brief 创建一个用于iocp接收的数据缓冲区
+	 * @param sockfd 要接收的socket
+	 * @return IO_DATA_BASE* 缓冲区指针
+	 */
 	IO_DATA_BASE *make_recv_io_data(int sockfd);
 
-	// 数据对于IOCP来说是接收完成了告诉程序，那么就需要告诉缓冲区本次接收到了多少长度
+	/**
+	 * @brief 告知缓冲区iocp为缓冲区写入了多少数据
+	 * @param nRecv 写入的长度
+	 * @return bool 是否成功
+	 */
 	bool read4iocp(int nRecv);
 
+	/**
+	 * @brief 创建一个用于iocp发送的数据缓冲区
+	 * @param sockfd 要发送的socket
+	 * @return IO_DATA_BASE* 数据缓冲区
+	 */
 	IO_DATA_BASE* make_send_io_data(int sockfd);
 
+	/**
+	 * @brief 告知缓冲区iocp发送了缓冲区中多少的数据
+	 * @param nSend 发送的长度
+	 * @return bool 是否成功
+	 */
 	bool write2iocp(int nSend);
 #endif
 

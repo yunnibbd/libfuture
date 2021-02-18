@@ -7,9 +7,12 @@
 class buffer_t;
 class socket_t;
 
-inline future_t<> open_connection(socket_t* socket, const char* ip, unsigned short port)
+inline future_t<> open_connection(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port)
 {
 	awaitable_t<> awaitable;
+
+	socket->set_send_buf(buffer);
+	current_scheduler()->add_to_connect(socket, buffer, ip, port);
 
 	return awaitable.get_future();
 }

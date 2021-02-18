@@ -55,7 +55,7 @@ public:
 					if (handle_.done())
 					{
 						//被co_await的协程执行完毕,执行调用者协程
-						handle_.destroy();
+						//handle_.destroy();
 						break;
 					}
 					//被co_await的协程没有执行完毕,添加进依赖队列

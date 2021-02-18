@@ -5,11 +5,21 @@
 #include <iostream>
 using namespace std;
 
+/**
+ * @brief 构造,初始buffer大小为8k
+ * @param size 初始大小
+ * @return
+ */
 buffer_t::buffer_t(int size) : n_size_(size)
 {
 	p_buffer_ = new char[size];
 }
 
+/**
+ * @brief 析构,在里面会释放空间
+ * @param
+ * @return
+ */
 buffer_t::~buffer_t()
 {
 	if (p_buffer_)
@@ -19,7 +29,12 @@ buffer_t::~buffer_t()
 	}
 }
 
-//往缓冲区例放数据
+/**
+ * @brief 往缓冲区里放数据
+ * @param data 源数据
+ * @param data_len 源数据长度
+ * @return bool 是否存放成功
+ */
 bool buffer_t::push(const char *data, int data_len)
 {
 	//如果还有空间
@@ -36,7 +51,11 @@ bool buffer_t::push(const char *data, int data_len)
 	return false;
 }
 
-//将缓冲区一部分数据移除
+/**
+ * @brief 将缓冲区一部分数据移除
+ * @param len 要移除的数据长度
+ * @return
+ */
 void buffer_t::pop(int len)
 {
 	//判断长度正常
@@ -52,7 +71,21 @@ void buffer_t::pop(int len)
 		--full_count_;
 }
 
-//从socket中读取数据
+/**
+ * @brief 将缓冲区中的所有数据移除
+ * @param
+ * @return
+ */
+void buffer_t::clear()
+{
+	pop(data_len());
+}
+
+/**
+ * @brief 从socket中读取数据
+ * @param sockfd 从哪个socket中读取数据
+ * @return int 本次读取的长度
+ */
 int buffer_t::read4socket(int sockfd)
 {
 	int ret = 0;
@@ -73,7 +106,11 @@ int buffer_t::read4socket(int sockfd)
 	return ret;
 }
 
-//往socket中写数据
+/**
+ * @brief 往socket中写数据
+ * @param sockfd 往哪个socket中写数据
+ * @return int 本次写入的数据长度
+ */
 int buffer_t::write2socket(int sockfd)
 {
 	int ret = 0;
@@ -103,7 +140,11 @@ int buffer_t::write2socket(int sockfd)
 }
 
 #ifdef USE_IOCP
-//所有针对iocp的数据存储和读取
+/**
+ * @brief 创建一个用于iocp接收的数据缓冲区
+ * @param sockfd 要接收的socket
+ * @return IO_DATA_BASE* 缓冲区指针
+ */
 IO_DATA_BASE *buffer_t::make_recv_io_data(int sockfd)
 {
 	int nLen = n_size_ - n_last_;
@@ -120,7 +161,11 @@ IO_DATA_BASE *buffer_t::make_recv_io_data(int sockfd)
 	return nullptr;
 }
 
-//数据对于IOCP来说是接收完成了告诉程序，那么就需要告诉缓冲区本次接收到了多少长度
+/**
+ * @brief 告知缓冲区iocp为缓冲区写入了多少数据
+ * @param nRecv 写入的长度
+ * @return bool 是否成功
+ */
 bool buffer_t::read4iocp(int nRecv)
 {
 	if (nRecv > 0 && n_size_ - n_last_ >= nRecv)
@@ -134,6 +179,11 @@ bool buffer_t::read4iocp(int nRecv)
 	return false;
 }
 
+/**
+ * @brief 创建一个用于iocp发送的数据缓冲区
+ * @param sockfd 要发送的socket
+ * @return IO_DATA_BASE* 数据缓冲区
+ */
 IO_DATA_BASE *buffer_t::make_send_io_data(int sockfd)
 {
 	if (n_last_ > 0)
@@ -149,6 +199,11 @@ IO_DATA_BASE *buffer_t::make_send_io_data(int sockfd)
 	return nullptr;
 }
 
+/**
+ * @brief 告知缓冲区iocp发送了缓冲区中多少的数据
+ * @param nSend 发送的长度
+ * @return bool 是否成功
+ */
 bool buffer_t::write2iocp(int nSend)
 {
 	if (n_last_ < nSend)

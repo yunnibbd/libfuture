@@ -90,17 +90,14 @@ public:
 	void add_to_socketio(socket_t* socket, event_type_enum type);
 
 	/*
-	 * @brief 添加进accept队列
+	 * @brief 添加connect事件进入socketio队列
 	 * @param socket 要通信的socket
+	 * @param buffer 连接上时要发送的数据
+	 * @param ip 要连接的ip地址
+	 * @param port 要连接的端口
 	 * @return
 	 */
-	/*void add_to_accept(socket_t* socket)
-	{
-		g_io_data.wsaBuff.buf = g_accept_buffer;
-		g_io_data.wsaBuff.len = ACCEPT_BUFFER_LEN;
-		iocp_.post_accept(&g_io_data, socket->sockfd());
-		accept_socket_queue_.insert(std::make_pair(socket, current_handle()));
-	}*/
+	void add_to_connect(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port);
 	
 	/**
 	 * @brief 添加一个需要等待到某一时刻运行的协程
@@ -130,7 +127,7 @@ public:
 	 */
 	handle_type current_handle();
 
-	void set_listen_sockfd(int sockfd) { listen_socket_ = sockfd; }
+	void set_init_sockfd(int sockfd) { init_socket_ = sockfd; }
 
 private:
 	/**
@@ -208,7 +205,7 @@ private:
 	//关于socket通信的对象
 	iocp_t iocp_;
 	//用于监听的套接字
-	int listen_socket_ = INVALID_SOCKET;
+	int init_socket_ = INVALID_SOCKET;
 	//用于接收新客户端的数据指针
 	IO_DATA_BASE io_data_ = { 0 };
 	//用于接收新客户端的缓冲区
