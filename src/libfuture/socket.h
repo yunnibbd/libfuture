@@ -9,14 +9,18 @@ class buffer_t;
 class socket_t : public noncopyable
 {
 public:
-	~socket_t();
+	socket_t() = default;
 
 	explicit socket_t(int sockfd) :
-		sockfd_(sockfd){}
+		sockfd_(sockfd) {}
+
+	~socket_t();
 
 	socket_t(int af, int type, int protocol);
 
 	int bind(const sockaddr* sa, int salen);
+
+	int bind(unsigned short port, const char* ip = nullptr);
 
 	int listen(int backlog);
 

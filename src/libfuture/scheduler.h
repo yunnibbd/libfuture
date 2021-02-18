@@ -16,6 +16,7 @@ class socket_t;
 class scheduler_t
 {
 public:
+
 	using handle_type = std::coroutine_handle<>;
 
 	/**
@@ -25,8 +26,12 @@ public:
 	 */
 	static scheduler_t* get_scheduler()
 	{
-		static scheduler_t instance;
-		return &instance;
+		if (!signal_instance_)
+		{
+			signal_instance_ = new scheduler_t();
+			static free_scheduler_ptr free_ins;
+		}
+		return signal_instance_;
 	}
 
 	/**
@@ -35,6 +40,13 @@ public:
 	 * @return
 	 */
 	~scheduler_t();
+
+	/**
+	 * @brief 初始化
+	 * @param
+	 * @return
+	 */
+	void init();
 
 	/**
 	 * @brief 销毁所有协程句柄
@@ -117,6 +129,9 @@ public:
 	 * @return handle_type 协程句柄
 	 */
 	handle_type current_handle();
+
+	void set_listen_sockfd(int sockfd) { listen_socket_ = sockfd; }
+
 private:
 	/**
 	 * @brief 构造
@@ -160,6 +175,22 @@ private:
 	 */
 	void update_suspend_queue();
 	
+	//本对象单件对象指针
+	static scheduler_t *signal_instance_;
+
+	class free_scheduler_ptr
+	{
+	public:
+		~free_scheduler_ptr()
+		{
+			if (signal_instance_)
+			{
+				delete signal_instance_;
+				signal_instance_ = nullptr;
+			}
+		}
+	};
+
 	//调度器正在执行的协程句柄
 	handle_type current_handle_;
 	//预备队列
@@ -168,16 +199,20 @@ private:
 	std::set<handle_type> suspend_queue_;
 	//依赖队列
 	std::multimap<handle_type, handle_type> depend_queue_;
-	//接收socket队列
-	std::map<socket_t*, handle_type> accept_socket_queue_;
 	//socket收发消息队列
-	std::map<socket_t*, handle_type> socketio_queue_;
+	std::map<int, handle_type> socketio_queue_;
 	//休眠队列
 	std::multimap<uint64_t, handle_type> sleep_queue_;
 	//休眠队列中的协程
 	std::set<handle_type> in_sleep_queue_;
 	//关于socket通信的对象
 	iocp_t iocp_;
+	//用于监听的套接字
+	int listen_socket_ = INVALID_SOCKET;
+	//用于接收新客户端的数据指针
+	IO_DATA_BASE io_data_ = { 0 };
+	//用于接收新客户端的缓冲区
+	char buffer_[512] = { 0 };
 };
 
 /**

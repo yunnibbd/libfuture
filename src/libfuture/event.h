@@ -7,22 +7,23 @@
 class buffer_t;
 class socket_t;
 
-future_t<> open_connection(socket_t* socket, const char* ip, unsigned short port)
+inline future_t<> open_connection(socket_t* socket, const char* ip, unsigned short port)
 {
 	awaitable_t<> awaitable;
 
 	return awaitable.get_future();
 }
 
-future_t<> open_accept(socket_t* socket)
+inline future_t<> open_accept(socket_t* socket)
 {
 	awaitable_t<> awaitable;
 
+	current_scheduler()->add_to_socketio(socket, EVENT_ACCEPT);
 
 	return awaitable.get_future();
 }
 
-future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
+inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
 {
 	awaitable_t<> awaitable;
 
@@ -32,7 +33,7 @@ future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
 	return awaitable.get_future();
 }
 
-future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
+inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
 {
 	awaitable_t<> awaitable;
 

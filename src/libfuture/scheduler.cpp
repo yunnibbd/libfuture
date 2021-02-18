@@ -8,6 +8,8 @@
 #include "buffer.h"
 #include "common.h"
 
+scheduler_t* scheduler_t::signal_instance_ = nullptr;
+
 /**
  * @brief 析构时销毁所有协程句柄
  * @param
@@ -16,6 +18,20 @@
 scheduler_t::~scheduler_t()
 {
 	destory_scheduler();
+}
+
+/**
+ * @brief 初始化
+ * @param
+ * @return
+ */
+void scheduler_t::init()
+{
+	iocp_.create();
+	iocp_.load_func(listen_socket_);
+	iocp_.reg(listen_socket_);
+	io_data_.wsaBuff.buf = buffer_;
+	io_data_.wsaBuff.len = sizeof(buffer_);
 }
 
 /**
@@ -40,9 +56,6 @@ void scheduler_t::destory_scheduler()
 	for (auto& entry : socketio_queue_)
 		entry.second.destroy();
 	socketio_queue_.clear();
-	for (auto& entry : accept_socket_queue_)
-		entry.second.destroy();
-	accept_socket_queue_.clear();
 }
 
 /**
@@ -85,6 +98,7 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			auto p_io_data = p_buffer->make_send_io_data(sockfd);
 			if (!p_io_data)
 				break;
+			iocp_.reg(sockfd, socket);
 			iocp_.post_send(p_io_data, sockfd);
 		}
 		else if (type == EVENT_RECV)
@@ -95,10 +109,14 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			auto p_io_data = p_buffer->make_recv_io_data(sockfd);
 			if (!p_io_data)
 				break;
+			iocp_.reg(sockfd, socket);
 			iocp_.post_recv(p_io_data, sockfd);
 		}
-
-		socketio_queue_.insert(std::make_pair(socket, current_handle()));
+		else if (type == EVENT_ACCEPT)
+		{
+			iocp_.post_accept(&io_data_, listen_socket_, sockfd);
+		}
+		socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 	} while (0);
 }
 
@@ -172,8 +190,7 @@ scheduler_t::handle_type scheduler_t::current_handle()
  */
 scheduler_t::scheduler_t()
 {
-	iocp_.create();
-	iocp_.load_func();
+	
 }
 
 /**
@@ -215,6 +232,7 @@ void scheduler_t::update_sleep_queue()
 			} while (0);
 			in_sleep_queue_.erase(begin->second);
 			begin = sleep_queue_.erase(begin);
+			continue;
 		}
 		break;
 	}
@@ -235,15 +253,21 @@ bool scheduler_t::update_socketio_queue()
 		if (!sleep_queue_.empty())
 		{
 			sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-			if (sleep_msec < -1)
-				sleep_msec = INFINITE;
+			if (sleep_msec < 0)
+				return false;
 		}
 		else
 		{
-			if (ready_queue_.empty() && suspend_queue_.empty() &&
-				depend_queue_.empty() && socketio_queue_.empty())
-				//如果所有队列都为空则返回真,用于终止事件循环
-				return true;
+			if (socketio_queue_.empty())
+			{
+				if (suspend_queue_.empty() &&
+					depend_queue_.empty() &&
+					ready_queue_.empty())
+					//此处用于终止事件循环
+					return true;
+				else
+					return false;
+			}
 			sleep_msec = INFINITE;
 		}
 		std::cout << "iocp will sleep " << sleep_msec << std::endl;
@@ -263,7 +287,7 @@ bool scheduler_t::update_socketio_queue()
 		case IO_TYPE::RECV:
 		{
 			socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
-			auto iter = socketio_queue_.find(socket);
+			auto iter = socketio_queue_.find(socket->sockfd());
 			if (iter != socketio_queue_.end())
 			{
 				ready_queue_.insert(iter->second);
@@ -277,7 +301,7 @@ bool scheduler_t::update_socketio_queue()
 		case IO_TYPE::SEND:
 		{
 			socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
-			auto iter = socketio_queue_.find(socket);
+			auto iter = socketio_queue_.find(socket->sockfd());
 			if (iter != socketio_queue_.end())
 			{
 				ready_queue_.insert(iter->second);
@@ -285,17 +309,16 @@ bool scheduler_t::update_socketio_queue()
 			}
 			auto p_buffer = socket->p_send_buf();
 			if (p_buffer)
-				p_buffer->write2socket(io_event.bytesTrans);
+				p_buffer->write2iocp(io_event.bytesTrans);
 		}
 		break;
 		case IO_TYPE::ACCEPT:
 		{
-			socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
-			auto iter = accept_socket_queue_.find(socket);
-			if (iter != accept_socket_queue_.end())
+			auto iter = socketio_queue_.find(io_event.pIOData->sockfd);
+			if (iter != socketio_queue_.end())
 			{
 				ready_queue_.insert(iter->second);
-				accept_socket_queue_.erase(iter);
+				socketio_queue_.erase(iter);
 			}
 		}
 		break;
@@ -308,7 +331,6 @@ bool scheduler_t::update_socketio_queue()
 			break;
 		}
 	}
-
 	return false;
 }
 

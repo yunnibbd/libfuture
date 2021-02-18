@@ -1,6 +1,7 @@
 #include "socket.h"
 #include "error_code.h"
 #include "utils.h"
+#include <cstring>
 
 socket_t::~socket_t()
 {
@@ -19,6 +20,17 @@ int socket_t::bind(const sockaddr* sa, int salen)
 	if (0 != ::bind(sockfd_, sa, salen))
 		return -1;
 	return 0;
+}
+
+int socket_t::bind(unsigned short port, const char* ip)
+{
+	sockaddr_in serv;
+	memset(&serv, 0, sizeof(serv));
+	serv.sin_family = AF_INET;
+	serv.sin_port = htons(port);
+	if (ip)
+		serv.sin_addr.s_addr = inet_addr(ip);
+	return this->bind((sockaddr * ) & serv, sizeof(serv));
 }
 
 int socket_t::listen(int backlog)

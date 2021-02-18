@@ -5,8 +5,10 @@
 #include "future.h"
 #include "awaitable.h"
 #include "sleep.h"
+#include "buffer.h"
 #include "scheduler.h"
 #include "socket.h"
+#include "event.h"
 #include "utils.h"
 
 #endif

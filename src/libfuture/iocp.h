@@ -88,10 +88,10 @@ public:
 
 	/**
 	 * @brief 将需要使用的函数加载到内存中
-	 * @param
+	 * @param sockfd
 	 * @return bool 是否加载成功
 	 */
-	bool load_func();
+	bool load_func(int sockfd);
 	
 	/**
 	 * @brief 获得地址
@@ -137,9 +137,10 @@ public:
 	 * @brief 投递接收链接任务
 	 * @param pIoData 数据缓冲区
 	 * @param listen_socket 监听套接字
+	 * @param client_socket 客户端套接字
 	 * @return bool 是否投递任务成功
 	 */
-	bool post_accept(IO_DATA_BASE* pIoData, int listen_socket);
+	bool post_accept(IO_DATA_BASE* pIoData, int listen_socket, int client_socket);
 
 	/**
 	 * @brief 投递连接服务端任务

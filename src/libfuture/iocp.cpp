@@ -30,33 +30,31 @@ iocp_t::~iocp_t()
 
 /**
  * @brief 将需要使用的函数加载到内存中
- * @param
+ * @param sockfd
  * @return bool 是否加载成功
  */
-bool iocp_t::load_func()
+bool iocp_t::load_func(int sockfd)
 {
 	if (!s_acceptEx || !s_connectEx || !s_getAcceptExSockaddrs)
 	{
 		GUID acceptex = WSAID_ACCEPTEX;
 		GUID connectex = WSAID_CONNECTEX;
 		GUID getacceptexsockaddrs = WSAID_GETACCEPTEXSOCKADDRS;
-		socket_t s(AF_INET, SOCK_STREAM, 0);
 
-		if (INVALID_SOCKET == s.sockfd())
+		if (INVALID_SOCKET == sockfd)
 			return false;
 
-		int fd = s.sockfd();
 		DWORD bytes = 0;
 
-		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &acceptex, sizeof(acceptex),
+		if (0 != WSAIoctl(sockfd, SIO_GET_EXTENSION_FUNCTION_POINTER, &acceptex, sizeof(acceptex),
 			&s_acceptEx, sizeof(s_acceptEx), &bytes, NULL, NULL))
 			return false;
 
-		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &connectex, sizeof(connectex),
+		if (0 != WSAIoctl(sockfd, SIO_GET_EXTENSION_FUNCTION_POINTER, &connectex, sizeof(connectex),
 			&s_connectEx, sizeof(s_connectEx), &bytes, NULL, NULL))
 			return false;
 
-		if (0 != WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &getacceptexsockaddrs, sizeof(getacceptexsockaddrs),
+		if (0 != WSAIoctl(sockfd, SIO_GET_EXTENSION_FUNCTION_POINTER, &getacceptexsockaddrs, sizeof(getacceptexsockaddrs),
 			&s_getAcceptExSockaddrs, sizeof(s_getAcceptExSockaddrs), &bytes, NULL, NULL))
 			return false;
 	}
@@ -152,9 +150,10 @@ HANDLE iocp_t::reg(int sockfd, void* ptr)
  * @brief 投递接收链接任务
  * @param pIoData 数据缓冲区
  * @param listen_socket 监听套接字
+ * @param client_socket 客户端套接字
  * @return bool 是否投递任务成功
  */
-bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int listen_socket)
+bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int listen_socket, int client_socket)
 {
 	if (!s_acceptEx)
 	{
@@ -162,7 +161,7 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int listen_socket)
 		return false;
 	}
 	pIoData->iotype = IO_TYPE::ACCEPT;
-	pIoData->sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	pIoData->sockfd = client_socket;
 	/*
 		! AcceptEx函数第四个参数只要是非0值，那么只有连接的客户端发送
 			一条消息(大小随意)后，IOCP才会告诉程序这个客户端连接了
@@ -171,7 +170,8 @@ bool iocp_t::post_accept(IO_DATA_BASE* pIoData, int listen_socket)
 			s	而远端地址和本地地址的大小都是sizeof(sockaddr_in) + 16,
 				剩下960字节可用
 	*/
-	if (FALSE == s_acceptEx(listen_socket,
+	if (FALSE == s_acceptEx(
+		listen_socket,
 		pIoData->sockfd,
 		pIoData->wsaBuff.buf,
 		//sizeof(ioData.buffer) - (sizeof(sockaddr_in) + 16) * 2,
