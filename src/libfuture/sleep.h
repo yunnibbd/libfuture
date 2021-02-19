@@ -17,7 +17,7 @@ template <class Rep, class Period>
 inline future_t<> operator co_await(std::chrono::duration<Rep, Period> dt_)
 {
 	awaitable_t<> awaitable;
-	scheduler_t* sch = current_scheduler();
+	scheduler_impl_t* sch = current_scheduler();
 	uint64_t tmp = std::chrono::duration_cast<std::chrono::milliseconds>(dt_).count();
 	sch->sleep_until(tmp + utils_t::get_cur_timestamp());
 	return awaitable.get_future();

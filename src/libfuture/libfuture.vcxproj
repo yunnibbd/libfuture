@@ -158,6 +158,7 @@
     <ClInclude Include="libfuture.h" />
     <ClInclude Include="noncopyable.h" />
     <ClInclude Include="promise.h" />
+    <ClInclude Include="base_scheduler.h" />
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="sleep.h" />
     <ClInclude Include="socket.h" />
@@ -168,6 +169,7 @@
     <ClCompile Include="epoll.cpp" />
     <ClCompile Include="iocp.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="base_scheduler.cpp" />
     <ClCompile Include="scheduler.cpp" />
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="utils.cpp" />

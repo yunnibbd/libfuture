@@ -20,6 +20,6 @@ int main(int argc, char** argv)
 {
 	cpp task1();
 
-	sche->run_until_no_task();
+	current_scheduler()->run_until_no_task();
 	return 0;
 }

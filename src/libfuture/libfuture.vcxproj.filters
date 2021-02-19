@@ -30,9 +30,6 @@
     <ClInclude Include="awaitable.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="scheduler.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -69,6 +66,12 @@
     <ClInclude Include="common.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="base_scheduler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="scheduler.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -87,6 +90,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="buffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="base_scheduler.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="scheduler.cpp">
