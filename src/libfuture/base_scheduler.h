@@ -2,6 +2,7 @@
 #define __BASE_SCHEDULE_H__
 #include "common.h"
 #include "iocp.h"
+#include "export_api.h"
 #include <list>
 #include <coroutine>
 #include <iostream>
@@ -13,7 +14,7 @@
 
 class socket_t;
 
-class scheduler_impl_t 
+class LIBFUTURE_API scheduler_impl_t
 {
 public:
 
@@ -31,7 +32,7 @@ public:
 	 * @param
 	 * @return
 	 */
-	~scheduler_impl_t();
+	virtual ~scheduler_impl_t();
 
 	/**
 	 * @brief 销毁所有协程句柄

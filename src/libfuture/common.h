@@ -3,7 +3,8 @@
 
 enum event_type_enum
 {
-	EVENT_SEND = 666,
+	EVENT_UNKNOW = 666,
+	EVENT_SEND,
 	EVENT_RECV,
 	EVENT_ACCEPT,
 	EVENT_CONNECT

@@ -1,6 +1,7 @@
 ﻿#include "epoll.h"
 #if __linux__
 #include "clog.h"
+#include "socket.h"
 
 /**
  * @brief 析构,在其中调用销毁epoll
@@ -21,7 +22,7 @@ int epoll_t::create(int max_events)
 {
 	if (epfd_ > 0)
 	{
-		Destory();
+		destory();
 		LOG_WARNING("epoll_t create has Destory old epfd\n");
 	}
 	max_events_ = max_events;
@@ -85,12 +86,12 @@ int epoll_t::ctl(int opt, int sockfd, uint32_t events)
  * @param events 事件类型
  * @return int 挂载结果
  */
-int epoll_t::ctl(int opt, CClient* pclient, uint32_t events)
+int epoll_t::ctl(int opt, socket_t* socket, uint32_t events)
 {
 	epoll_event ev;
 	ev.events = events;
-	ev.data.ptr = pclient;
-	int ret = epoll_ctl(epfd_, opt, pclient->sockfd(), &ev);
+	ev.data.ptr = socket;
+	int ret = epoll_ctl(epfd_, opt, socket->sockfd(), &ev);
 	if (ret == -1)
 	{
 		LOG_WARNING("epoll_t ctl2 failed\n");

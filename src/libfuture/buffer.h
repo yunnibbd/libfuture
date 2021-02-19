@@ -1,6 +1,6 @@
-﻿#ifndef __CBUFFER_H__
-#define __CBUFFER_H__
-#include <string.h>
+﻿#ifndef __BUFFER_H__
+#define __BUFFER_H__
+#include <cstring>
 #include "iocp.h"
 #include "export_api.h"
 

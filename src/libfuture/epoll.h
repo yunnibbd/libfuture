@@ -11,6 +11,8 @@
 #include <string.h>
 #include <errno.h>
 
+class socket_t;
+
 /**
  * @brief 对epoll的封装
  */
@@ -50,11 +52,11 @@ public:
 	/**
 	 * @brief 挂载client指针到epoll上
 	 * @param opt 操作类型
-	 * @param pclient 待挂载的指针类型
+	 * @param socket 待挂载的指针类型
 	 * @param events 事件类型
 	 * @return int 挂载结果
 	 */
-	int ctl(int opt, CClient* pclient, uint32_t events);
+	int ctl(int opt, socket_t* socket, uint32_t events);
 
 	/**
 	 * @brief 等待事件

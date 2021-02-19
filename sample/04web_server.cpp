@@ -32,7 +32,7 @@ future_t<> test_accept()
 	socket_t* client_socket = nullptr;
 	while (true)
 	{
-		client_socket = new socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		client_socket = new socket_t();
 		co_await open_accept(client_socket);
 		cpp test_send_and_recv(client_socket);
 	}
@@ -42,12 +42,15 @@ future_t<> test_accept()
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
 	WSADATA _data;
 	WSAStartup(MAKEWORD(2, 2), &_data);
+#endif
 
 	auto sche = current_scheduler();
 
 	socket_t* listen_socket = new socket_t(AF_INET, SOCK_STREAM, 0);
+	listen_socket->reuse_addr();
 	listen_socket->bind(8000, "127.0.0.1");
 	listen_socket->listen(128);
 	sche->set_init_sockfd(listen_socket->sockfd());
@@ -56,6 +59,8 @@ int main(int argc, char** argv)
 
 	sche->run_until_no_task();
 
+#ifdef _WIN32
 	WSACleanup();
+#endif
 	return 0;
 }

@@ -1,8 +1,12 @@
 ﻿#ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
+#include "iocp.h"
+#include "epoll.h"
+#include "socket.h"
+#include "export_api.h"
 #include "base_scheduler.h"
 
-class scheduler_t : public scheduler_impl_t
+class LIBFUTURE_API scheduler_t : public scheduler_impl_t
 {
 public:
 	/**
@@ -19,6 +23,8 @@ public:
 		}
 		return signal_instance_;
 	}
+
+	virtual ~scheduler_t();
 
 	/**
 	 * @brief 添加进socketio队列
@@ -55,6 +61,22 @@ public:
 	void set_init_sockfd(int sockfd) { init_socket_ = sockfd; }
 
 private:
+#ifdef _WIN32
+	/**
+	 * @brief iocp的处理io事件方式
+	 * @param
+	 * @return bool 为update_socketio_queue的返回值
+	 */
+	bool iocp_loop();
+#else
+	/**
+	 * @brief epoll的处理io事件方式
+	 * @param
+	 * @return bool 为update_socketio_queue的返回值
+	 */
+	bool epoll_loop();
+#endif
+
 	//本对象单件对象指针
 	static scheduler_t* signal_instance_;
 
@@ -71,14 +93,25 @@ private:
 		}
 	};
 
-	//关于socket通信的对象
-	iocp_t iocp_;
-	//用于监听的套接字
+#ifdef _WIN32
+	//用于初始化的套接字
 	int init_socket_ = INVALID_SOCKET;
+	//关于socket的通信对象
+	iocp_t iocp_;
 	//用于接收新客户端的数据指针
 	IO_DATA_BASE io_data_ = { 0 };
 	//用于接收新客户端的缓冲区
 	char buffer_[512] = { 0 };
+#else
+	//用于初始化的套接字
+	int init_socket_ = -1;
+	//关于socket的通信对象
+	epoll_t epoll_;
+	//用于accept的时候的客户端地址
+	struct sockaddr client_addr_ = { 0 };
+	//用于accept的时候的客户端地址长度
+	socklen_t client_addr_len_ = sizeof(client_addr_);
+#endif
 };
 
 /**

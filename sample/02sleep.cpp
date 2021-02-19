@@ -21,7 +21,8 @@ future_t<> task1()
 
 int main(int argc, char** argv)
 {
-	current_scheduler()->init();
+	auto sche = current_scheduler();
+	sche->init();
 	cpp task1();
 
 	sche->run_until_no_task();

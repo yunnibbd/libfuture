@@ -38,16 +38,25 @@ int socket_t::listen(int backlog)
 	return ::listen(sockfd_, backlog);
 }
 
+//设置端口可复用
+bool socket_t::reuse_addr()
+{
+	int flag = 1;
+	if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, (const char*)&flag, sizeof(flag)))
+		return false;
+	return true;
+}
+
 int socket_t::accept()
 {
 	sockaddr_in sockAddr;
 	socklen_t len = sizeof(sockAddr);
 	memset(&sockAddr, 0, sizeof(sockAddr));
-
+	
 #ifdef _WIN32
 	int connfd = ::accept(sockfd_, (sockaddr*)&sockAddr, &len);
 #else
-	int connfd = accept4(m_fd, (sockaddr*)&sockAddr, &len, SOCK_NONBLOCK);
+	int connfd = accept4(sockfd_, (sockaddr*)&sockAddr, &len, SOCK_NONBLOCK);
 #endif
 	return connfd;
 }
@@ -72,9 +81,9 @@ int socket_t::connect(sockaddr* sa, int salen)
 int socket_t::close()
 {
 #ifdef _WIN32
-	return closesocket(sockfd_);
+	return ::closesocket(sockfd_);
 #else
-	return close(sockfd_);
+	return ::close(sockfd_);
 #endif
 }
 

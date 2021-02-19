@@ -1,6 +1,6 @@
 ﻿#ifndef __CLOG_H__
 #define __CLOG_H__
-#include <stdio.h>
+#include <cstdio>
 
 #define LOG_DEBUG(...) printf(__VA_ARGS__);
 #define LOG_INFO(...) printf(__VA_ARGS__);

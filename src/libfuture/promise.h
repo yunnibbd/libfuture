@@ -3,6 +3,7 @@
 #include "future.h"
 #include <coroutine>
 #include <iostream>
+#include <exception>
 
 template <typename _Ty>
 struct promise_impl_t
@@ -38,9 +39,9 @@ struct promise_impl_t
 	 * @param
 	 * @return
 	 */
-	void unhandled_excepstion()
+	void unhandled_exception()
 	{
-		terminate();
+		std::terminate();
 	}
 };
 

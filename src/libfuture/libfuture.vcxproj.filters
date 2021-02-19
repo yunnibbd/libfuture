@@ -92,11 +92,16 @@
     <ClCompile Include="buffer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="base_scheduler.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="scheduler.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="base_scheduler.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>
