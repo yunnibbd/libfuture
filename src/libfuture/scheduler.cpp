@@ -1,4 +1,4 @@
-#include "scheduler.h"
+ï»¿#include "scheduler.h"
 #include "future.h"
 #include "utils.h"
 #include "iocp.h"
@@ -11,7 +11,7 @@
 scheduler_t* scheduler_t::signal_instance_ = nullptr;
 
 /**
- * @brief Îö¹¹Ê±Ïú»ÙËùÓĞĞ­³Ì¾ä±ú
+ * @brief ææ„æ—¶é”€æ¯æ‰€æœ‰åç¨‹å¥æŸ„
  * @param
  * @return
  */
@@ -21,7 +21,7 @@ scheduler_t::~scheduler_t()
 }
 
 /**
- * @brief ³õÊ¼»¯
+ * @brief åˆå§‹åŒ–
  * @param
  * @return
  */
@@ -35,7 +35,7 @@ void scheduler_t::init()
 }
 
 /**
- * @brief Ïú»ÙËùÓĞĞ­³Ì¾ä±ú
+ * @brief é”€æ¯æ‰€æœ‰åç¨‹å¥æŸ„
  * @param
  * @return
  */
@@ -59,9 +59,9 @@ void scheduler_t::destory_scheduler()
 }
 
 /**
- * @brief Ìí¼Ó½øĞ­³Ì¹ØÏµÒÀÀµ¶ÓÁĞ
- * @param handle ÒªµÈ´ı±ğµÄĞ­³ÌµÄĞ­³Ì
- * @param dependent ±»ÒÀÀµµÄĞ­³Ì
+ * @brief æ·»åŠ è¿›åç¨‹å…³ç³»ä¾èµ–é˜Ÿåˆ—
+ * @param handle è¦ç­‰å¾…åˆ«çš„åç¨‹çš„åç¨‹
+ * @param dependent è¢«ä¾èµ–çš„åç¨‹
  * @return
  */
 void scheduler_t::add_to_depend(handle_type handle, handle_type dependent)
@@ -70,8 +70,8 @@ void scheduler_t::add_to_depend(handle_type handle, handle_type dependent)
 }
 
 /**
- * @brief Ìí¼Ó½ø¹ÒÆğ¶ÓÁĞ
- * @param handle µ÷ÓÃco_yieldµÄĞ­³Ì¾ä±ú
+ * @brief æ·»åŠ è¿›æŒ‚èµ·é˜Ÿåˆ—
+ * @param handle è°ƒç”¨co_yieldçš„åç¨‹å¥æŸ„
  * @return
  */
 void scheduler_t::add_to_suspend(handle_type handle)
@@ -80,9 +80,9 @@ void scheduler_t::add_to_suspend(handle_type handle)
 }
 
 /**
- * @brief Ìí¼Ó½øsocketio¶ÓÁĞ
- * @param socket ÒªÍ¨ĞÅµÄsocket
- * @param type ±¾socketÒª½øĞĞµÄ²Ù×÷ÀàĞÍ
+ * @brief æ·»åŠ è¿›socketioé˜Ÿåˆ—
+ * @param socket è¦é€šä¿¡çš„socket
+ * @param type æœ¬socketè¦è¿›è¡Œçš„æ“ä½œç±»å‹
  * @return
  */
 void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
@@ -138,11 +138,11 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 }
 
 /*
- * @brief Ìí¼ÓconnectÊÂ¼ş½øÈësocketio¶ÓÁĞ
- * @param socket ÒªÍ¨ĞÅµÄsocket
- * @param buffer Á¬½ÓÉÏÊ±Òª·¢ËÍµÄÊı¾İ
- * @param ip ÒªÁ¬½ÓµÄipµØÖ·
- * @param port ÒªÁ¬½ÓµÄ¶Ë¿Ú
+ * @brief æ·»åŠ connectäº‹ä»¶è¿›å…¥socketioé˜Ÿåˆ—
+ * @param socket è¦é€šä¿¡çš„socket
+ * @param buffer è¿æ¥ä¸Šæ—¶è¦å‘é€çš„æ•°æ®
+ * @param ip è¦è¿æ¥çš„ipåœ°å€
+ * @param port è¦è¿æ¥çš„ç«¯å£
  * @return
  */
 void scheduler_t::add_to_connect(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port)
@@ -165,8 +165,8 @@ void scheduler_t::add_to_connect(socket_t* socket, buffer_t* buffer, const char*
 }
 
 /**
- * @brief Ìí¼ÓÒ»¸öĞèÒªµÈ´ıµ½Ä³Ò»Ê±¿ÌÔËĞĞµÄĞ­³Ì
- * @param msec ÒªµÈ´ıµÄÊ±¼ä
+ * @brief æ·»åŠ ä¸€ä¸ªéœ€è¦ç­‰å¾…åˆ°æŸä¸€æ—¶åˆ»è¿è¡Œçš„åç¨‹
+ * @param msec è¦ç­‰å¾…çš„æ—¶é—´
  * @return
  */
 void scheduler_t::sleep_until(uint64_t msec)
@@ -177,7 +177,7 @@ void scheduler_t::sleep_until(uint64_t msec)
 }
 
 /**
- * @brief ¿ªÊ¼´¦ÀíËùÓĞĞ­³Ì£¬Ö±ÖÁ´¦ÀíÍê±Ï
+ * @brief å¼€å§‹å¤„ç†æ‰€æœ‰åç¨‹ï¼Œç›´è‡³å¤„ç†å®Œæ¯•
  * @param
  * @return
  */
@@ -195,8 +195,8 @@ void scheduler_t::run_until_no_task()
 }
 
 /**
- * @brief ´æ´¢schedulerµ±Ç°ÒªÖ´ĞĞµÄĞ­³Ì¾ä±ú
- * @param handle Òª´æ´¢µÄĞ­³Ì¾ä±ú
+ * @brief å­˜å‚¨schedulerå½“å‰è¦æ‰§è¡Œçš„åç¨‹å¥æŸ„
+ * @param handle è¦å­˜å‚¨çš„åç¨‹å¥æŸ„
  * @return
  */
 void scheduler_t::set_current_handle(handle_type handle)
@@ -205,9 +205,9 @@ void scheduler_t::set_current_handle(handle_type handle)
 }
 
 /**
- * @brief »ñµÃµ±Ç°ÕıÔÚÖ´ĞĞµÄĞ­³Ì¾ä±ú
+ * @brief è·å¾—å½“å‰æ­£åœ¨æ‰§è¡Œçš„åç¨‹å¥æŸ„
  * @param
- * @return handle_type Ğ­³Ì¾ä±ú
+ * @return handle_type åç¨‹å¥æŸ„
  */
 scheduler_t::handle_type scheduler_t::current_handle()
 {
@@ -215,7 +215,7 @@ scheduler_t::handle_type scheduler_t::current_handle()
 }
 
 /**
- * @brief ¹¹Ôì
+ * @brief æ„é€ 
  * @param
  * @return
  */
@@ -225,9 +225,9 @@ scheduler_t::scheduler_t()
 }
 
 /**
- * @brief µ÷¶ÈĞİÃß¶ÓÁĞ
+ * @brief è°ƒåº¦ä¼‘çœ é˜Ÿåˆ—
  * @param
- * @return bool sleep_queue_ÊÇ·ñÎª¿Õ
+ * @return bool sleep_queue_æ˜¯å¦ä¸ºç©º
  */
 void scheduler_t::update_sleep_queue()
 {
@@ -270,9 +270,9 @@ void scheduler_t::update_sleep_queue()
 }
 
 /**
- * @brief µ÷¶Èsocketio_queue_
+ * @brief è°ƒåº¦socketio_queue_
  * @param
- * @return bool ËùÓĞÈÎÎñÊÇ·ñ´¦ÀíÍê±Ï
+ * @return bool æ‰€æœ‰ä»»åŠ¡æ˜¯å¦å¤„ç†å®Œæ¯•
  */
 bool scheduler_t::update_socketio_queue()
 {
@@ -294,7 +294,7 @@ bool scheduler_t::update_socketio_queue()
 				if (suspend_queue_.empty() &&
 					depend_queue_.empty() &&
 					ready_queue_.empty())
-					//´Ë´¦ÓÃÓÚÖÕÖ¹ÊÂ¼şÑ­»·
+					//æ­¤å¤„ç”¨äºç»ˆæ­¢äº‹ä»¶å¾ªç¯
 					return true;
 				else
 					return false;
@@ -304,7 +304,7 @@ bool scheduler_t::update_socketio_queue()
 				if (ready_queue_.empty())
 					sleep_msec = INFINITE;
 				else
-					//Ô¤±¸¶ÓÁĞÖĞÓĞĞèÒªÁ¢ÂíÖ´ĞĞµÄĞ­³Ì
+					//é¢„å¤‡é˜Ÿåˆ—ä¸­æœ‰éœ€è¦ç«‹é©¬æ‰§è¡Œçš„åç¨‹
 					return false;
 			}
 		}
@@ -312,12 +312,12 @@ bool scheduler_t::update_socketio_queue()
 		int ret = iocp_.wait(io_event, sleep_msec);
 		if (ret < 0)
 		{
-			//IOCP³ö´í
+			//IOCPå‡ºé”™
 			LOG_ERROR("update_socketio_queue::iocp error\n");
 			break;
 		}
 		else if (ret == 0)
-			//Ã»ÓĞÊÂ¼ş
+			//æ²¡æœ‰äº‹ä»¶
 			break;
 
 		switch (io_event.pIOData->iotype)
@@ -362,7 +362,7 @@ bool scheduler_t::update_socketio_queue()
 		break;
 		case IO_TYPE::CONNECT:
 		{
-			//ÔİÎ´ÊµÏÖ
+			//æš‚æœªå®ç°
 		}
 		break;
 		default:
@@ -373,7 +373,7 @@ bool scheduler_t::update_socketio_queue()
 }
 
 /**
- * @brief µ÷¶ÈÔ¤±¸¶ÓÁĞ
+ * @brief è°ƒåº¦é¢„å¤‡é˜Ÿåˆ—
  * @param
  * @return
  */
@@ -398,7 +398,7 @@ void scheduler_t::update_ready_queue()
 }
 
 /**
- * @brief µ÷¶ÈÒÀÀµ¶ÓÁĞ
+ * @brief è°ƒåº¦ä¾èµ–é˜Ÿåˆ—
  * @param
  * @return
  */
@@ -424,7 +424,7 @@ void scheduler_t::update_depend_queue()
 		{
 			if (!begin->first.done())
 			{
-				//²éÑ¯µ±Ç°Ğ­³ÌÊÇ·ñÔÚsleep_queue_ÖĞ
+				//æŸ¥è¯¢å½“å‰åç¨‹æ˜¯å¦åœ¨sleep_queue_ä¸­
 				if (in_sleep_queue_.find(begin->first) == in_sleep_queue_.end())
 				{
 					set_current_handle(begin->first);
@@ -442,9 +442,9 @@ void scheduler_t::update_depend_queue()
 }
 
 /**
- * @brief µ÷¶È¹ÒÆğ¶ÓÁĞ
+ * @brief è°ƒåº¦æŒ‚èµ·é˜Ÿåˆ—
  * @param
- * @return bool ¹ÒÆğ¶ÓÁĞÊÇ·ñÎª¿Õ
+ * @return bool æŒ‚èµ·é˜Ÿåˆ—æ˜¯å¦ä¸ºç©º
  */
 void scheduler_t::update_suspend_queue()
 {

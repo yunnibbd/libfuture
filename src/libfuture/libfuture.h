@@ -11,4 +11,8 @@
 #include "event.h"
 #include "utils.h"
 
+#ifndef cpp
+#define cpp *current_scheduler()+
+#endif
+
 #endif

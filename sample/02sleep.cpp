@@ -1,4 +1,4 @@
-#include "libfuture.h"
+﻿#include "libfuture.h"
 #include <iostream>
 using namespace std;
 
@@ -21,9 +21,8 @@ future_t<> task1()
 
 int main(int argc, char** argv)
 {
-	auto sche = current_scheduler();
-	sche->init();
-	sche->ensure_future(task1());
+	current_scheduler()->init();
+	cpp task1();
 
 	sche->run_until_no_task();
 	return 0;

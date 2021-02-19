@@ -1,25 +1,31 @@
-#include "libfuture.h"
+ï»¿#include "libfuture.h"
 #include <iostream>
 using namespace std;
 
 future_t<> test_accept_recv()
 {
-	socket_t* client_socket = new socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	co_await open_accept(client_socket);
+	socket_t client_socket = socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	co_await open_accept(&client_socket);
 
-	buffer_t* buffer = new buffer_t();
+	buffer_t buffer;
 
 	while (true)
 	{
-		buffer->clear();
-		co_await buffer_read(buffer, client_socket);
+		buffer.clear();
+		co_await buffer_read(&buffer, &client_socket);
 
-		//·ÀÖ¹ÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌÌ»òÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
-		buffer->data()[buffer->data_len()] = 0;
-
-		cout << "recv from client " << buffer->data() << endl;
-
-		co_await buffer_write(buffer, client_socket);
+		if (buffer.has_data())
+		{
+			//é˜²æ­¢çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«çƒ«æˆ–å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯å±¯
+			buffer.data()[buffer.data_len()] = 0;
+			cout << "recv from client " << buffer.data() << endl;
+			co_await buffer_write(&buffer, &client_socket);
+		}
+		else
+		{
+			cout << "client leave" << endl;
+			co_return;
+		}
 	}
 
 	co_return;
@@ -37,7 +43,7 @@ int main(int argc, char** argv)
 	listen_socket->listen(128);
 	sche->set_init_sockfd(listen_socket->sockfd());
 	sche->init();
-	sche->ensure_future(test_accept_recv());
+	cpp test_accept_recv();
 
 	sche->run_until_no_task();
 

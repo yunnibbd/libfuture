@@ -67,6 +67,17 @@ public:
 	}
 
 	/**
+	 * @brief 配合宏定义可直接使用cpp来加入一个协程,和ensure_future功能一样
+	 * @param
+	 * @return
+	 */
+	template <typename _Ty>
+	void operator + (_Ty && future)
+	{
+		ready_queue_.insert(future.handle());
+	}
+
+	/**
 	 * @brief 添加进协程关系依赖队列
 	 * @param handle 要等待别的协程的协程
 	 * @param dependent 被依赖的协程

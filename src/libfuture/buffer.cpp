@@ -175,7 +175,7 @@ bool buffer_t::read4iocp(int nRecv)
 		n_last_ += nRecv;
 		return true;
 	}
-	LOG_DEBUG("CELLBuffer read4iocp:sockfd<%d> nSize<%d> nLast<%d> nRecv<%d>", io_data_.sockfd, n_size_, n_last_, nRecv);
+	LOG_DEBUG("buffer_t read4iocp:sockfd<%d> nSize<%d> nLast<%d> nRecv<%d>\n", io_data_.sockfd, n_size_, n_last_, nRecv);
 	return false;
 }
 
@@ -208,7 +208,7 @@ bool buffer_t::write2iocp(int nSend)
 {
 	if (n_last_ < nSend)
 	{
-		LOG_DEBUG("write2iocp:sockfd<%d> nSize<%d> nLast<%d> nSend<%d>", io_data_.sockfd, n_size_, n_last_, nSend);
+		LOG_DEBUG("write2iocp:sockfd<%d> nSize<%d> nLast<%d> nSend<%d>\n", io_data_.sockfd, n_size_, n_last_, nSend);
 		return false;
 	}
 	else if (n_last_ == nSend)

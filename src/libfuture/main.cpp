@@ -4,29 +4,37 @@ using namespace std;
 
 future_t<> test_send_and_recv(socket_t* client_socket)
 {
-	buffer_t* buffer = new buffer_t();
+	buffer_t buffer;
 	while (true)
 	{
-		buffer->clear();
-		co_await buffer_read(buffer, client_socket);
+		buffer.clear();
+		co_await buffer_read(&buffer, client_socket);
 
-		//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
-		buffer->data()[buffer->data_len()] = 0;
-
-		cout << "recv from client " << buffer->data() << endl;
-
-		co_await buffer_write(buffer, client_socket);
+		if (buffer.has_data())
+		{
+			//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
+			buffer.data()[buffer.data_len()] = 0;
+			cout << "recv from client " << buffer.data() << endl;
+			co_await buffer_write(&buffer, client_socket);
+		}
+		else
+		{
+			cout << "client leave" << endl;
+			delete client_socket;
+			co_return;
+		}
 	}
 	co_return;
 }
 
 future_t<> test_accept()
 {
+	socket_t* client_socket = nullptr;
 	while (true)
 	{
-		socket_t* client_socket = new socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		client_socket = new socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		co_await open_accept(client_socket);
-		current_scheduler()->ensure_future(test_send_and_recv(client_socket));
+		cpp test_send_and_recv(client_socket);
 	}
 
 	co_return;
@@ -44,13 +52,7 @@ int main(int argc, char** argv)
 	listen_socket->listen(128);
 	sche->set_init_sockfd(listen_socket->sockfd());
 	sche->init();
-	//sche->ensure_future(test_accept_recv());
-	sche->ensure_future(test_accept());
-
-	/*socket_t* client_socket = new socket_t(AF_INET, SOCK_STREAM, 0);
-	sche->set_init_sockfd(client_socket->sockfd());
-	sche->init();
-	sche->ensure_future(test_connect_send(client_socket));*/
+	cpp test_accept();
 
 	sche->run_until_no_task();
 
