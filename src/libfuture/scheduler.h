@@ -60,6 +60,8 @@ public:
 
 	void set_init_sockfd(int sockfd) { init_socket_ = sockfd; }
 
+	sockaddr_in* get_accept_addr() { return &client_addr_; }
+
 private:
 #ifdef _WIN32
 	/**
@@ -93,6 +95,10 @@ private:
 		}
 	};
 
+	//用于accept的时候的客户端地址
+	struct sockaddr_in client_addr_ = { 0 };
+	//用于accept的时候的客户端地址长度
+	socklen_t client_addr_len_ = sizeof(client_addr_);
 #ifdef _WIN32
 	//用于初始化的套接字
 	int init_socket_ = INVALID_SOCKET;
@@ -107,10 +113,6 @@ private:
 	int init_socket_ = -1;
 	//关于socket的通信对象
 	epoll_t epoll_;
-	//用于accept的时候的客户端地址
-	struct sockaddr client_addr_ = { 0 };
-	//用于accept的时候的客户端地址长度
-	socklen_t client_addr_len_ = sizeof(client_addr_);
 #endif
 };
 

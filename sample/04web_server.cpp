@@ -1,8 +1,10 @@
 ﻿#include "libfuture.h"
 #include <iostream>
+#include <sstream>
+#include <string>
 using namespace std;
 
-future_t<> test_send_and_recv(socket_t* client_socket)
+future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 {
 	buffer_t buffer;
 	while (true)
@@ -14,7 +16,7 @@ future_t<> test_send_and_recv(socket_t* client_socket)
 		{
 			//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
 			buffer.data()[buffer.data_len()] = 0;
-			cout << "recv from client " << buffer.data() << endl;
+			cout << "recv from " << addr << ":" << buffer.data() << endl;
 			co_await buffer_write(&buffer, client_socket);
 		}
 		else
@@ -33,8 +35,16 @@ future_t<> test_accept()
 	while (true)
 	{
 		client_socket = new socket_t();
+		//在接收到客户端之前会一直挂起
 		co_await open_accept(client_socket);
-		cpp test_send_and_recv(client_socket);
+		//获得地址信息
+		sockaddr_in* client_addr = FUTURE->get_accept_addr();
+		stringstream ss;
+		ss << inet_ntoa(client_addr->sin_addr) << ":";
+		ss << ntohs(client_addr->sin_port);
+		cout << ss.str() << " join" << endl;
+		//开启一个协程来处理这个socket的接收和发送数据
+		cpp test_send_and_recv(client_socket, ss.str());
 	}
 
 	co_return;
@@ -47,17 +57,16 @@ int main(int argc, char** argv)
 	WSAStartup(MAKEWORD(2, 2), &_data);
 #endif
 
-	auto sche = current_scheduler();
-
 	socket_t* listen_socket = new socket_t(AF_INET, SOCK_STREAM, 0);
 	listen_socket->reuse_addr();
 	listen_socket->bind(8000, "127.0.0.1");
 	listen_socket->listen(128);
-	sche->set_init_sockfd(listen_socket->sockfd());
-	sche->init();
+	//FUTURE是一个宏,被定义为current_scheduler()
+	FUTURE->set_init_sockfd(listen_socket->sockfd());
+	FUTURE->init();
 	cpp test_accept();
 
-	sche->run_until_no_task();
+	FUTURE->run_until_no_task();
 
 #ifdef _WIN32
 	WSACleanup();

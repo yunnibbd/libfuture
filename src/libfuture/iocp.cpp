@@ -65,20 +65,20 @@ static int addr_size = sizeof(sockaddr_in);
 
 /**
  * @brief 获得地址
- * @param pIoData IO_DATA_BASE数据缓冲
+ * @param src 数据缓冲
  * @param l_addr 近端地址
  * @param l_len 近端地址长度
  * @param r_addr 远端地址
  * @param r_len 远端地址长度
  * @return
  */
-void iocp_t::get_addr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len)
+void iocp_t::get_addr(char *src, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len)
 {
 	if (!s_getAcceptExSockaddrs)
 		return;
-	s_getAcceptExSockaddrs(pIoData->wsaBuff.buf,
+	s_getAcceptExSockaddrs(src,
 					       0,
-						   addr_size, addr_size,
+						   addr_size + 16, addr_size + 16,
 						   (struct sockaddr**)&l_addr, &l_len,
 						   (struct sockaddr**)&r_addr, &r_len);
 }

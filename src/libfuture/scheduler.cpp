@@ -108,12 +108,16 @@ bool scheduler_t::iocp_loop()
 		break;
 		case IO_TYPE::ACCEPT:
 		{
-			auto iter = socketio_queue_.find(io_event.pIOData->sockfd);
+			int sockfd = io_event.pIOData->sockfd;
+			auto iter = socketio_queue_.find(sockfd);
+			setsockopt(sockfd, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&init_socket_, sizeof(init_socket_));
+			getpeername(sockfd, (sockaddr*)&client_addr_, &client_addr_len_);
 			if (iter != socketio_queue_.end())
 			{
 				ready_queue_.insert(iter->second);
 				socketio_queue_.erase(iter);
 			}
+			
 		}
 		break;
 		case IO_TYPE::CONNECT:
@@ -256,14 +260,11 @@ scheduler_t::~scheduler_t()
 void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 {
 #ifdef _WIN32
-	int sockfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	socket->set_sockfd(sockfd);
-	do
+	switch (type)
 	{
-		switch (type)
-		{
 		case EVENT_SEND:
 		{
+			int sockfd = socket->sockfd();
 			auto p_buffer = socket->p_send_buf();
 			if (!p_buffer)
 				break;
@@ -272,14 +273,17 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				break;
 			if (!socket->is_register)
 			{
-				iocp_.reg(sockfd, socket);
+				if (!iocp_.reg(sockfd, socket))
+					break;
 				socket->is_register = true;
 			}
 			iocp_.post_send(p_io_data, sockfd);
+			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 		}
 		break;
 		case EVENT_RECV:
 		{
+			int sockfd = socket->sockfd();
 			auto p_buffer = socket->p_recv_buf();
 			if (!p_buffer)
 				break;
@@ -288,27 +292,29 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				break;
 			if (!socket->is_register)
 			{
-				iocp_.reg(sockfd, socket);
+				if (!iocp_.reg(sockfd, socket))
+					break;
 				socket->is_register = true;
 			}
 			iocp_.post_recv(p_io_data, sockfd);
+			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 		}
 		break;
 		case EVENT_ACCEPT:
 		{
-			iocp_.post_accept(&io_data_, init_socket_, sockfd);
+			int sockfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			socket->set_sockfd(sockfd);
+			if (!iocp_.post_accept(&io_data_, init_socket_, sockfd))
+				break;
+			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 		}
 		break;
 		default:
-			break;
-		}
-		socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
-	} while (0);
+		break;
+	}
 #else
-	do
+	switch (type)
 	{
-		switch (type)
-		{
 		case EVENT_SEND:
 		{
 			socket->set_event_type(EVENT_SEND);
@@ -316,7 +322,8 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				epoll_.ctl(EPOLL_CTL_MOD, socket, EPOLLOUT);
 			else
 			{
-				epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLOUT);
+				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLOUT))
+					break;
 				socket->is_register = true;
 			}
 			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
@@ -329,7 +336,8 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				epoll_.ctl(EPOLL_CTL_MOD, socket, EPOLLIN);
 			else
 			{
-				epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN);
+				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
+					break;
 				socket->is_register = true;
 			}
 			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
@@ -343,20 +351,21 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			socket->set_sockfd(init_socket_);
 			if (is_first)
 			{
-				epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN);
+				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
+					break;
 				is_first = false;
 			}
 			else
 			{
-				epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN);
+				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
+					break;
 			}
 			socketio_queue_.insert(std::make_pair(init_socket_, current_handle()));
 		}
 		break;
 		default:
-			break;
-		}
-	} while (0);
+		break;
+	}
 #endif
 }
 

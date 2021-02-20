@@ -91,14 +91,14 @@ public:
 	
 	/**
 	 * @brief 获得地址
-	 * @param pIoData IO_DATA_BASE数据缓冲
+	 * @param src 数据缓冲
 	 * @param l_addr 近端地址
 	 * @param l_len 近端地址长度
 	 * @param r_addr 远端地址
 	 * @param r_len 远端地址长度
 	 * @return
 	 */
-	void get_addr(IO_DATA_BASE *pIoData, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len);
+	static void get_addr(char* src, sockaddr_in *l_addr, int l_len, sockaddr_in *r_addr, int r_len);
 
 	/**
 	 * @brief 创建一个IO完成端口

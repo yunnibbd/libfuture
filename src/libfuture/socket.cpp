@@ -44,6 +44,7 @@ bool socket_t::reuse_addr()
 	int flag = 1;
 	if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, (const char*)&flag, sizeof(flag)))
 		return false;
+	
 	return true;
 }
 

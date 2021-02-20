@@ -10,7 +10,7 @@ class buffer_t;
 class socket_t : public noncopyable
 {
 public:
-	socket_t() = default;
+	socket_t() {}
 
 	explicit socket_t(int sockfd) :
 		sockfd_(sockfd) {}

@@ -15,4 +15,8 @@
 #define cpp *current_scheduler()+
 #endif
 
+#ifndef FUTURE
+#define FUTURE current_scheduler()
+#endif
+
 #endif

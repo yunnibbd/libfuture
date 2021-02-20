@@ -67,7 +67,7 @@ public:
 	 * @return IO_DATA_BASE* 缓冲区指针
 	 */
 	IO_DATA_BASE *make_recv_io_data(int sockfd);
-
+	
 	/**
 	 * @brief 告知缓冲区iocp为缓冲区写入了多少数据
 	 * @param nRecv 写入的长度
@@ -89,6 +89,13 @@ public:
 	 */
 	bool write2iocp(int nSend);
 #endif
+
+	/**
+	 * @brief 获得连接的地址
+	 * @param sockfd 要获得地址的套接字
+	 * @return
+	 */
+	static void get_addr(int sockfd);
 
 	//缓冲区里是否有数据
 	bool has_data();

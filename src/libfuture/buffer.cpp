@@ -3,6 +3,7 @@
 #include "error_code.h"
 #include "include.h"
 #include <iostream>
+#include <string>
 using namespace std;
 
 /**
@@ -226,6 +227,21 @@ bool buffer_t::write2iocp(int nSend)
 	return true;
 }
 #endif
+
+static sockaddr_in remote_addr;
+static sockaddr_in local_addr;
+static int remote_addr_len = sizeof(sockaddr_in);
+static int local_addr_len = sizeof(sockaddr_in);
+
+/**
+ * @brief 获得连接的地址
+ * @param sockfd 要获得地址的套接字
+ * @return
+ */
+void buffer_t::get_addr(int sockfd)
+{
+	
+}
 
 //缓冲区里是否有数据
 bool buffer_t::has_data()
