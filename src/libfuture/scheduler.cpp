@@ -4,8 +4,6 @@
 #include "clog.h"
 #include "include.h"
 
-scheduler_t* scheduler_t::signal_instance_ = nullptr;
-
 /**
  * @brief 初始化
  * @param
@@ -222,7 +220,7 @@ bool scheduler_t::epoll_loop()
 			{
 				if (events[i].events & EPOLLIN)
 				{
-					int c_sock = ::accept(init_socket_, &client_addr_, &client_addr_len_);
+					int c_sock = ::accept(init_socket_, (sockaddr*)&client_addr_, &client_addr_len_);
 					socket->set_sockfd(c_sock);
 					auto iter = socketio_queue_.find(init_socket_);
 					if (iter != socketio_queue_.end())

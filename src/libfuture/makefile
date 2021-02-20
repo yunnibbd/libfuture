@@ -1,10 +1,10 @@
 ﻿SRC=$(wildcard *.cpp)
 OBJ=$(patsubst %.cpp,%.o,$(SRC))
-TARGET=test_future
-CPPFLAGS= -g -std=c++20 -fcoroutines
+TARGET=libfuture.so
+CPPFLAGS= -g -std=c++20 -fcoroutines -fPIC
 LIBS= -lpthread
 $(TARGET):$(OBJ)
-	g++ $+ -o $@ $(LIBS) $(CPPFLAGS)
+	g++ -shared $+ -o $@ $(LIBS) $(CPPFLAGS)
 
 clean:
 	rm $(OBJ) $(TARGET)
