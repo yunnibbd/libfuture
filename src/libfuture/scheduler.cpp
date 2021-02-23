@@ -32,36 +32,51 @@ bool scheduler_t::iocp_loop()
 {
 	int64_t sleep_msec;
 	IO_EVENT io_event;
-
 	while (true)
 	{
-		if (!sleep_queue_.empty())
+		if (socketio_queue_.empty())
 		{
-			sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-			if (sleep_msec < 0)
+			if (ready_queue_.empty())
+			{
+				if (sleep_queue_.empty())
+				{
+					if (suspend_queue_.empty() && depend_queue_.empty())
+						return true;
+					else
+						return false;
+				}
+				else
+				{
+					sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
+					if (sleep_msec <= 0)
+						return false;
+				}
+			}
+			else
 				return false;
 		}
 		else
 		{
-			if (socketio_queue_.empty())
+			if (ready_queue_.empty())
 			{
-				if (suspend_queue_.empty() &&
-					depend_queue_.empty() &&
-					ready_queue_.empty())
-					//此处用于终止事件循环
-					return true;
+				if (sleep_queue_.empty())
+				{
+					if (ready_queue_.empty())
+						sleep_msec = INFINITE;
+					else
+						return false;
+				}
 				else
-					return false;
+				{
+					sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
+					if (sleep_msec < 0)
+						return false;
+				}
 			}
 			else
-			{
-				if (ready_queue_.empty())
-					sleep_msec = INFINITE;
-				else
-					//预备队列中有需要立马执行的协程
-					return false;
-			}
+				return false;
 		}
+		
 		//std::cout << "iocp will sleep " << sleep_msec << std::endl;
 		int ret = iocp_.wait(io_event, sleep_msec);
 		if (ret < 0)
@@ -139,32 +154,47 @@ bool scheduler_t::epoll_loop()
 {
 	int64_t sleep_msec = -1;
 
-	if (!sleep_queue_.empty())
+	if (socketio_queue_.empty())
 	{
-		sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-		if (sleep_msec < 0)
+		if (ready_queue_.empty())
+		{
+			if (sleep_queue_.empty())
+			{
+				if (suspend_queue_.empty() && depend_queue_.empty())
+					return true;
+				else
+					return false;
+			}
+			else
+			{
+				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
+				if (sleep_msec <= 0)
+					return false;
+			}
+		}
+		else
 			return false;
 	}
 	else
 	{
-		if (socketio_queue_.empty())
+		if (ready_queue_.empty())
 		{
-			if (suspend_queue_.empty() &&
-				depend_queue_.empty() &&
-				ready_queue_.empty())
-				//此处用于终止事件循环
-				return true;
+			if (sleep_queue_.empty())
+			{
+				if (ready_queue_.empty())
+					sleep_msec = -1;
+				else
+					return false;
+			}
 			else
-				return false;
+			{
+				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
+				if (sleep_msec < 0)
+					return false;
+			}
 		}
 		else
-		{
-			if (ready_queue_.empty())
-				sleep_msec = -1;
-			else
-				//预备队列中有需要立马执行的协程
-				return false;
-		}
+			return false;
 	}
 
 	int ret = epoll_.wait(sleep_msec);
@@ -355,7 +385,7 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			}
 			else
 			{
-				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
+				if (-1 == epoll_.ctl(EPOLL_CTL_MOD, socket, EPOLLIN))
 					break;
 			}
 			socketio_queue_.insert(std::make_pair(init_socket_, current_handle()));
