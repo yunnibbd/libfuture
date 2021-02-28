@@ -3,6 +3,7 @@
 #include "utils.h"
 #include "clog.h"
 #include "include.h"
+using namespace libfuture;
 
 /**
  * @brief 初始化
@@ -400,32 +401,21 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 /*
  * @brief 添加connect事件进入socketio队列
  * @param socket 要通信的socket
- * @param buffer 连接上时要发送的数据
  * @param ip 要连接的ip地址
  * @param port 要连接的端口
  * @return
  */
-void scheduler_t::add_to_connect(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port)
+void scheduler_t::add_to_connect(socket_t* socket, const char* ip, unsigned short port)
 {
-#ifdef _WIN32
 	int sockfd = socket->sockfd();
-	auto p_buffer = socket->p_send_buf();
-	if (!p_buffer)
-		return;
-	auto p_io_data = p_buffer->make_send_io_data(sockfd);
-	if (!p_io_data)
-		return;
-	//iocp_.reg(sockfd, socket);
+	
 	sockaddr_in serv;
 	memset(&serv, 0, sizeof(serv));
 	serv.sin_family = AF_INET;
 	serv.sin_port = htons(port);
 	serv.sin_addr.s_addr = inet_addr(ip);
-	iocp_.post_connect(p_io_data, sockfd, (sockaddr*)&serv, sizeof(serv));
+	
 	socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
-#else
-
-#endif
 }
 
 /**

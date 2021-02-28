@@ -3,18 +3,23 @@
 #include "export_api.h"
 #include <cinttypes>
 
-class LIBFUTURE_API utils_t
+namespace libfuture
 {
-public:
-	/**
-	 * @brief 获得当前的时间戳
-	 * @param
-	 * @return
-	 */
-	static uint64_t get_cur_timestamp();
 
-private:
-	utils_t() {}
-};
+	class LIBFUTURE_API utils_t
+	{
+	public:
+		/**
+		 * @brief 获得当前的时间戳
+		 * @param
+		 * @return
+		 */
+		static uint64_t get_cur_timestamp();
+
+	private:
+		utils_t() {}
+	};
+
+}
 
 #endif

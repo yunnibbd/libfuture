@@ -1,6 +1,7 @@
 ﻿#include "libfuture.h"
 #include <iostream>
 using namespace std;
+using namespace libfuture;
 
 future_t<> test_accept_recv()
 {
@@ -33,8 +34,10 @@ future_t<> test_accept_recv()
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
 	WSADATA _data;
 	WSAStartup(MAKEWORD(2, 2), &_data);
+#endif
 
 	auto sche = current_scheduler();
 
@@ -42,11 +45,16 @@ int main(int argc, char** argv)
 	listen_socket->bind(8000, "127.0.0.1");
 	listen_socket->listen(128);
 	sche->set_init_sockfd(listen_socket->sockfd());
+	//要成为服务端必须使用一个监听套接字来初始化
 	sche->init();
+
+	//开启一个协程
 	cpp test_accept_recv();
 
 	sche->run_until_no_task();
 
+#ifdef _WIN32
 	WSACleanup();
+#endif
 	return 0;
 }

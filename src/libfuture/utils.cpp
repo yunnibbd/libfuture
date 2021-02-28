@@ -10,6 +10,7 @@
 #endif
 using namespace std;
 using namespace chrono;
+using namespace libfuture;
 
 /**
  * @brief 获得当前的时间戳

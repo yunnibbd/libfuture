@@ -5,69 +5,74 @@
 #include "include.h"
 #include "common.h"
 
-class buffer_t;
-
-class LIBFUTURE_API socket_t : public noncopyable
+namespace libfuture
 {
-public:
-	socket_t() {}
 
-	explicit socket_t(int sockfd) :
-		sockfd_(sockfd) {}
+	class buffer_t;
 
-	~socket_t();
+	class LIBFUTURE_API socket_t : public noncopyable
+	{
+	public:
+		socket_t() {}
 
-	socket_t(int af, int type, int protocol);
+		explicit socket_t(int sockfd) :
+			sockfd_(sockfd) {}
 
-	int bind(const sockaddr* sa, int salen);
+		~socket_t();
 
-	int bind(unsigned short port, const char* ip = nullptr);
+		socket_t(int af, int type, int protocol);
 
-	int listen(int backlog);
+		int bind(const sockaddr* sa, int salen);
 
-	//设置端口可复用
-	bool reuse_addr();
+		int bind(unsigned short port, const char* ip = nullptr);
 
-	int accept();
+		int listen(int backlog);
 
-	int connect(int af, const char* strIP, const int nPort);
+		//设置端口可复用
+		bool reuse_addr();
 
-	int connect(sockaddr* sa, int salen);
+		int accept();
 
-	int close();
+		int connect(int af, const char* strIP, const int nPort);
 
-	int recv(char* buf, const int size);
+		int connect(sockaddr* sa, int salen);
 
-	int send(const char* buf, const int size);
+		int close();
 
-	void set_sockfd(int sockfd) { sockfd_ = sockfd; }
+		int recv(char* buf, const int size);
 
-	int sockfd() const { return sockfd_; }
+		int send(const char* buf, const int size);
 
-	//缓冲区中的待接收数据大小
-	socket_unread_t get_unread_byte() const;
+		void set_sockfd(int sockfd) { sockfd_ = sockfd; }
 
-	int set_non_block();
+		int sockfd() const { return sockfd_; }
 
-	int close_on_exec();
+		//缓冲区中的待接收数据大小
+		socket_unread_t get_unread_byte() const;
 
-	void set_send_buf(buffer_t* buffer) { p_send_buf_ = buffer;  }
-	buffer_t* p_send_buf() { return p_send_buf_; }
+		int set_non_block();
 
-	void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
-	buffer_t* p_recv_buf() { return p_recv_buf_; }
+		int close_on_exec();
 
-	//是否被注册
-	bool is_register = false;
-	
-	void set_event_type(event_type_enum event_type) { event_type_ = event_type; }
-	event_type_enum event_type() { return event_type_; }
-private:
-	//注册的时候的事件(初始为未知事件)
-	event_type_enum event_type_ = EVENT_UNKNOW;
-	int sockfd_ = -1;
-	buffer_t* p_send_buf_ = nullptr;
-	buffer_t* p_recv_buf_ = nullptr;
-};
+		void set_send_buf(buffer_t* buffer) { p_send_buf_ = buffer; }
+		buffer_t* p_send_buf() { return p_send_buf_; }
+
+		void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
+		buffer_t* p_recv_buf() { return p_recv_buf_; }
+
+		//是否被注册
+		bool is_register = false;
+
+		void set_event_type(event_type_enum event_type) { event_type_ = event_type; }
+		event_type_enum event_type() { return event_type_; }
+	private:
+		//注册的时候的事件(初始为未知事件)
+		event_type_enum event_type_ = EVENT_UNKNOW;
+		int sockfd_ = -1;
+		buffer_t* p_send_buf_ = nullptr;
+		buffer_t* p_recv_buf_ = nullptr;
+	};
+
+}
 
 #endif

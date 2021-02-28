@@ -1,6 +1,7 @@
 ﻿#include "libfuture.h"
 #include <iostream>
 using namespace std;
+using namespace libfuture;
 
 future_t<int> task2()
 {
@@ -18,6 +19,7 @@ future_t<> task1()
 
 int main(int argc, char** argv)
 {
+	//开启一个协程
 	cpp task1();
 
 	current_scheduler()->run_until_no_task();

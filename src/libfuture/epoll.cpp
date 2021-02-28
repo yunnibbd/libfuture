@@ -2,6 +2,7 @@
 #if __linux__
 #include "clog.h"
 #include "socket.h"
+using namespace libfuture;
 
 /**
  * @brief 析构,在其中调用销毁epoll

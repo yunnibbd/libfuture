@@ -2,6 +2,7 @@
 #include "error_code.h"
 #include "utils.h"
 #include <cstring>
+using namespace libfuture;
 
 socket_t::~socket_t()
 {

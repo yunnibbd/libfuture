@@ -3,6 +3,7 @@
 #include <sstream>
 #include <string>
 using namespace std;
+using namespace libfuture;
 
 future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 {
@@ -57,16 +58,20 @@ int main(int argc, char** argv)
 	WSAStartup(MAKEWORD(2, 2), &_data);
 #endif
 
+	auto sche = current_scheduler();
+
 	socket_t* listen_socket = new socket_t(AF_INET, SOCK_STREAM, 0);
 	listen_socket->reuse_addr();
 	listen_socket->bind(8000, "127.0.0.1");
 	listen_socket->listen(128);
-	//FUTURE是一个宏,被定义为current_scheduler()
-	FUTURE->set_init_sockfd(listen_socket->sockfd());
-	FUTURE->init();
+	sche->set_init_sockfd(listen_socket->sockfd());
+	//要成为一个服务端必须要设置一个监听套接字进行初始化
+	sche->init();
+
+	//开启一个协程
 	cpp test_accept();
 
-	FUTURE->run_until_no_task();
+	sche->run_until_no_task();
 
 #ifdef _WIN32
 	WSACleanup();

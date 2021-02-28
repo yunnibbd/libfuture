@@ -11,6 +11,9 @@
 #include "event.h"
 #include "utils.h"
 
+namespace libfuture
+{
+
 #ifndef cpp
 #define cpp *current_scheduler()+
 #endif
@@ -18,5 +21,6 @@
 #ifndef FUTURE
 #define FUTURE current_scheduler()
 #endif
+}
 
 #endif

@@ -4,46 +4,50 @@
 #include "future.h"
 #include "common.h"
 
-class buffer_t;
-class socket_t;
-
-LIBFUTURE_API inline future_t<> open_connection(socket_t* socket, buffer_t* buffer, const char* ip, unsigned short port)
+namespace libfuture
 {
-	awaitable_t<> awaitable;
 
-	socket->set_send_buf(buffer);
-	current_scheduler()->add_to_connect(socket, buffer, ip, port);
+	class buffer_t;
+	class socket_t;
 
-	return awaitable.get_future();
-}
+	LIBFUTURE_API inline future_t<> open_connection(socket_t* socket, const char* ip, unsigned short port)
+	{
+		awaitable_t<> awaitable;
 
-LIBFUTURE_API inline future_t<> open_accept(socket_t* socket)
-{
-	awaitable_t<> awaitable;
+		current_scheduler()->add_to_connect(socket, ip, port);
 
-	current_scheduler()->add_to_socketio(socket, EVENT_ACCEPT);
+		return awaitable.get_future();
+	}
 
-	return awaitable.get_future();
-}
+	LIBFUTURE_API inline future_t<> open_accept(socket_t* socket)
+	{
+		awaitable_t<> awaitable;
 
-LIBFUTURE_API inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
-{
-	awaitable_t<> awaitable;
+		current_scheduler()->add_to_socketio(socket, EVENT_ACCEPT);
 
-	socket->set_recv_buf(buffer);
-	current_scheduler()->add_to_socketio(socket, EVENT_RECV);
+		return awaitable.get_future();
+	}
 
-	return awaitable.get_future();
-}
+	LIBFUTURE_API inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
+	{
+		awaitable_t<> awaitable;
 
-LIBFUTURE_API inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
-{
-	awaitable_t<> awaitable;
+		socket->set_recv_buf(buffer);
+		current_scheduler()->add_to_socketio(socket, EVENT_RECV);
 
-	socket->set_send_buf(buffer);
-	current_scheduler()->add_to_socketio(socket, EVENT_SEND);
+		return awaitable.get_future();
+	}
 
-	return awaitable.get_future();
+	LIBFUTURE_API inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
+	{
+		awaitable_t<> awaitable;
+
+		socket->set_send_buf(buffer);
+		current_scheduler()->add_to_socketio(socket, EVENT_SEND);
+
+		return awaitable.get_future();
+	}
+
 }
 
 #endif

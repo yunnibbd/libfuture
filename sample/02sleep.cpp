@@ -1,6 +1,7 @@
 ﻿#include "libfuture.h"
 #include <iostream>
 using namespace std;
+using namespace libfuture;
 
 future_t<int> task2()
 {
@@ -22,7 +23,9 @@ future_t<> task1()
 int main(int argc, char** argv)
 {
 	auto sche = current_scheduler();
+	//使用睡眠功能要先进行init
 	sche->init();
+	//开启一个协程
 	cpp task1();
 
 	sche->run_until_no_task();

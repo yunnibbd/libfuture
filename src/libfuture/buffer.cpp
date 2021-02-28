@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 using namespace std;
+using namespace libfuture;
 
 /**
  * @brief 构造,初始buffer大小为8k

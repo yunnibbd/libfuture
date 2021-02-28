@@ -1,6 +1,7 @@
 ﻿#include "iocp.h"
 #include "clog.h"
 #include <cinttypes>
+using namespace libfuture;
 
 #ifdef _WIN32
 
