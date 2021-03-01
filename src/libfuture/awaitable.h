@@ -13,6 +13,9 @@ namespace libfuture
 	template <typename _Ty>
 	struct promise_t;
 
+	/**
+	 * @brief 一个可被co_await的对象
+	 */
 	template <typename _Ty = void>
 	class LIBFUTURE_API awaitable_t
 	{

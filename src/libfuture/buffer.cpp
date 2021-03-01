@@ -141,7 +141,7 @@ int buffer_t::write2socket(int sockfd)
 	return ret;
 }
 
-#ifdef USE_IOCP
+#ifdef _WIN32
 /**
  * @brief 创建一个用于iocp接收的数据缓冲区
  * @param sockfd 要接收的socket

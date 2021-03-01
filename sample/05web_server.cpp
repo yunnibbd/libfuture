@@ -39,7 +39,7 @@ future_t<> test_accept()
 		//在接收到客户端之前会一直挂起
 		co_await open_accept(client_socket);
 		//获得地址信息
-		sockaddr_in* client_addr = FUTURE->get_accept_addr();
+		sockaddr_in* client_addr = current_scheduler()->get_accept_addr();
 		stringstream ss;
 		ss << inet_ntoa(client_addr->sin_addr) << ":";
 		ss << ntohs(client_addr->sin_port);

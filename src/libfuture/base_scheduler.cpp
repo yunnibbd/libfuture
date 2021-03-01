@@ -10,30 +10,30 @@
 using namespace libfuture;
 
 /**
-	* @brief 构造
-	* @param
-	* @return
-	*/
+ * @brief 构造
+ * @param
+ * @return
+ */
 scheduler_impl_t::scheduler_impl_t()
 {
 
 }
 
 /**
-	* @brief 析构时销毁所有协程句柄
-	* @param
-	* @return
-	*/
+ * @brief 析构时销毁所有协程句柄
+ * @param
+ * @return
+ */
 scheduler_impl_t::~scheduler_impl_t()
 {
 	destory_scheduler();
 }
 
 /**
-	* @brief 销毁所有协程句柄
-	* @param
-	* @return
-	*/
+ * @brief 销毁所有协程句柄
+ * @param
+ * @return
+ */
 void scheduler_impl_t::destory_scheduler()
 {
 	for (auto& handle : ready_queue_)
@@ -54,31 +54,31 @@ void scheduler_impl_t::destory_scheduler()
 }
 
 /**
-	* @brief 添加进协程关系依赖队列
-	* @param handle 要等待别的协程的协程
-	* @param dependent 被依赖的协程
-	* @return
-	*/
+ * @brief 添加进协程关系依赖队列
+ * @param handle 要等待别的协程的协程
+ * @param dependent 被依赖的协程
+ * @return
+ */
 void scheduler_impl_t::add_to_depend(handle_type handle, handle_type dependent)
 {
 	depend_queue_.insert(std::make_pair(handle, dependent));
 }
 
 /**
-	* @brief 添加进挂起队列
-	* @param handle 调用co_yield的协程句柄
-	* @return
-	*/
+ * @brief 添加进挂起队列
+ * @param handle 调用co_yield的协程句柄
+ * @return
+ */
 void scheduler_impl_t::add_to_suspend(handle_type handle)
 {
 	suspend_queue_.insert(handle);
 }
 
 /**
-	* @brief 添加一个需要等待到某一时刻运行的协程
-	* @param msec 要等待的时间
-	* @return
-	*/
+ * @brief 添加一个需要等待到某一时刻运行的协程
+ * @param msec 要等待的时间
+ * @return
+ */
 void scheduler_impl_t::sleep_until(uint64_t msec)
 {
 	auto handle = current_handle();
@@ -87,10 +87,10 @@ void scheduler_impl_t::sleep_until(uint64_t msec)
 }
 
 /**
-	* @brief 开始处理所有协程，直至处理完毕
-	* @param
-	* @return
-	*/
+ * @brief 开始处理所有协程，直至处理完毕
+ * @param
+ * @return
+ */
 void scheduler_impl_t::run_until_no_task()
 {
 	while (true)
@@ -105,30 +105,30 @@ void scheduler_impl_t::run_until_no_task()
 }
 
 /**
-	* @brief 存储scheduler当前要执行的协程句柄
-	* @param handle 要存储的协程句柄
-	* @return
-	*/
+ * @brief 存储scheduler当前要执行的协程句柄
+ * @param handle 要存储的协程句柄
+ * @return
+ */
 void scheduler_impl_t::set_current_handle(handle_type handle)
 {
 	current_handle_ = handle;
 }
 
 /**
-	* @brief 获得当前正在执行的协程句柄
-	* @param
-	* @return handle_type 协程句柄
-	*/
+ * @brief 获得当前正在执行的协程句柄
+ * @param
+ * @return handle_type 协程句柄
+ */
 scheduler_impl_t::handle_type scheduler_impl_t::current_handle()
 {
 	return current_handle_;
 }
 
 /**
-	* @brief 调度休眠队列
-	* @param
-	* @return bool sleep_queue_是否为空
-	*/
+ * @brief 调度休眠队列
+ * @param
+ * @return bool sleep_queue_是否为空
+ */
 void scheduler_impl_t::update_sleep_queue()
 {
 	auto begin = sleep_queue_.begin();
@@ -170,10 +170,10 @@ void scheduler_impl_t::update_sleep_queue()
 }
 
 /**
-	* @brief 调度预备队列
-	* @param
-	* @return
-	*/
+ * @brief 调度预备队列
+ * @param
+ * @return
+ */
 void scheduler_impl_t::update_ready_queue()
 {
 	auto begin = ready_queue_.begin();
@@ -197,10 +197,10 @@ void scheduler_impl_t::update_ready_queue()
 }
 
 /**
-	* @brief 调度依赖队列
-	* @param
-	* @return
-	*/
+ * @brief 调度依赖队列
+ * @param
+ * @return
+ */
 void scheduler_impl_t::update_depend_queue()
 {
 	auto begin = depend_queue_.begin();
@@ -228,21 +228,22 @@ void scheduler_impl_t::update_depend_queue()
 				{
 					set_current_handle(begin->first);
 					begin->first.resume();
+					auto start = depend_queue_.lower_bound(begin->first);
+					auto stop = depend_queue_.upper_bound(begin->first);
+					for (; start != stop; )
+					{
+						//因为依赖，后依赖满足后被唤醒，所有被依赖项应该被释放
+						start->second.destroy();
+						++start;
+					}
+
+					if (begin->first.done())
+						begin->first.destroy();
+
+					//当前协程已经没有依赖项了，如果还没有执行完成代表被别的队列捕获了
+					//在这里从依赖队列移除
+					begin = depend_queue_.erase(begin);
 				}
-			}
-			if (begin->first.done())
-			{
-				auto start = depend_queue_.lower_bound(begin->first);
-				auto stop = depend_queue_.upper_bound(begin->first);
-				for (; start != stop; )
-				{
-					//到这里代表被依赖项都执行完毕了,销毁协程句柄
-					start->second.destroy();
-					++start;
-				}
-				begin->first.destroy();
-				begin = depend_queue_.erase(begin);
-				continue;
 			}
 		}
 		begin = stop;
@@ -250,10 +251,10 @@ void scheduler_impl_t::update_depend_queue()
 }
 
 /**
-	* @brief 调度挂起队列
-	* @param
-	* @return bool 挂起队列是否为空
-	*/
+ * @brief 调度挂起队列
+ * @param
+ * @return bool 挂起队列是否为空
+ */
 void scheduler_impl_t::update_suspend_queue()
 {
 	auto begin = suspend_queue_.begin();

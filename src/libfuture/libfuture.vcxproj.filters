@@ -100,5 +100,11 @@
     <None Include="makefile">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="event.inl">
+      <Filter>头文件</Filter>
+    </None>
+    <None Include="sleep.inl">
+      <Filter>头文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

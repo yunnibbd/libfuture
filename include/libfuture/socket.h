@@ -10,6 +10,9 @@ namespace libfuture
 
 	class buffer_t;
 
+	/**
+	 * @brief 对socket的封装
+	 */
 	class LIBFUTURE_API socket_t : public noncopyable
 	{
 	public:
@@ -47,12 +50,7 @@ namespace libfuture
 
 		int sockfd() const { return sockfd_; }
 
-		//缓冲区中的待接收数据大小
-		socket_unread_t get_unread_byte() const;
-
 		int set_non_block();
-
-		int close_on_exec();
 
 		void set_send_buf(buffer_t* buffer) { p_send_buf_ = buffer; }
 		buffer_t* p_send_buf() { return p_send_buf_; }
@@ -60,8 +58,12 @@ namespace libfuture
 		void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
 		buffer_t* p_recv_buf() { return p_recv_buf_; }
 
+#ifdef _WIN32
 		//是否被注册
 		bool is_register = false;
+		//是否投递了事件
+		bool is_post_event = false;
+#endif
 
 		void set_event_type(event_type_enum event_type) { event_type_ = event_type; }
 		event_type_enum event_type() { return event_type_; }
@@ -72,7 +74,6 @@ namespace libfuture
 		buffer_t* p_send_buf_ = nullptr;
 		buffer_t* p_recv_buf_ = nullptr;
 	};
-
 }
 
 #endif

@@ -8,7 +8,9 @@
 
 namespace libfuture
 {
-
+	/**
+	 * @brief 调度器，调度io
+	 */
 	class LIBFUTURE_API scheduler_t : public scheduler_impl_t
 	{
 	public:
@@ -33,15 +35,6 @@ namespace libfuture
 		 * @return
 		 */
 		virtual void add_to_socketio(socket_t* socket, event_type_enum type) override;
-
-		/*
-		 * @brief 添加connect事件进入socketio队列
-		 * @param socket 要通信的socket
-		 * @param ip 要连接的ip地址
-		 * @param port 要连接的端口
-		 * @return
-		 */
-		virtual void add_to_connect(socket_t* socket, const char* ip, unsigned short port) override;
 
 		/**
 		 * @brief 调度socketio_queue_

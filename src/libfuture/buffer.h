@@ -1,8 +1,8 @@
 ﻿#ifndef __BUFFER_H__
 #define __BUFFER_H__
-#include <cstring>
 #include "iocp.h"
 #include "export_api.h"
+#include <cstring>
 
 namespace libfuture
 {
@@ -62,7 +62,7 @@ namespace libfuture
 		 */
 		int write2socket(int sockfd);
 
-#ifdef USE_IOCP
+#ifdef _WIN32
 		/**
 		 * @brief 创建一个用于iocp接收的数据缓冲区
 		 * @param sockfd 要接收的socket
@@ -119,7 +119,7 @@ namespace libfuture
 		int n_size_ = 0;
 		// 缓冲区写满计数
 		int full_count_ = 0;
-#ifdef USE_IOCP
+#ifdef _WIN32
 		//IOCP使用的数据上下文
 		IO_DATA_BASE io_data_ = { 0 };
 #endif

@@ -10,44 +10,39 @@ namespace libfuture
 	class buffer_t;
 	class socket_t;
 
-	LIBFUTURE_API inline future_t<> open_connection(socket_t* socket, const char* ip, unsigned short port)
-	{
-		awaitable_t<> awaitable;
+	/**
+	 * @brief 异步连接
+	 * @param socket 
+	 * @param ip 要连接的ip地址
+	 * @param port 要连接的端口
+	 * @return
+	 */
+	LIBFUTURE_API inline future_t<bool> open_connection(socket_t* socket, const char* ip, unsigned short port);
 
-		current_scheduler()->add_to_connect(socket, ip, port);
+	/**
+	 * @brief 接收一个连接
+	 * @param socket 
+	 * @return 协程对象
+	 */
+	LIBFUTURE_API inline future_t<> open_accept(socket_t* socket);
 
-		return awaitable.get_future();
-	}
+	/**
+	 * @brief 读数据
+	 * @param buffer 数据的存放点
+	 * @param socket 往哪里读
+	 * @return 协程对象
+	 */
+	LIBFUTURE_API inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket);
 
-	LIBFUTURE_API inline future_t<> open_accept(socket_t* socket)
-	{
-		awaitable_t<> awaitable;
-
-		current_scheduler()->add_to_socketio(socket, EVENT_ACCEPT);
-
-		return awaitable.get_future();
-	}
-
-	LIBFUTURE_API inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
-	{
-		awaitable_t<> awaitable;
-
-		socket->set_recv_buf(buffer);
-		current_scheduler()->add_to_socketio(socket, EVENT_RECV);
-
-		return awaitable.get_future();
-	}
-
-	LIBFUTURE_API inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
-	{
-		awaitable_t<> awaitable;
-
-		socket->set_send_buf(buffer);
-		current_scheduler()->add_to_socketio(socket, EVENT_SEND);
-
-		return awaitable.get_future();
-	}
-
+	/**
+	 * @brief 写数据
+	 * @param buffer 数据源
+	 * @param socket 往哪里写
+	 * @return 协程对象
+	 */
+	LIBFUTURE_API inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket);
 }
+
+#include "event.inl"
 
 #endif

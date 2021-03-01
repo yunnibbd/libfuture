@@ -99,27 +99,6 @@ int socket_t::send(const char* buf, const int size)
 	return ::send(sockfd_, buf, size, 0);
 }
 
-socket_unread_t socket_t::get_unread_byte() const
-{
-	socket_unread_t n = 0;
-#ifdef _WIN32
-	if (ioctlsocket(sockfd_, FIONREAD, &n) < 0)
-	{
-		printf("call ioctlsocket failed! err:%d\n", WSAGetLastError());
-		return 0;
-	}
-#else
-	if (ioctl(sockfd_, FIONREAD, &n) < 0)
-	{
-		printf("call ioctlsocket failed!\n");
-		return -1;
-	}
-
-#endif
-
-	return n;
-}
-
 int socket_t::set_non_block()
 {
 #ifdef _WIN32
@@ -132,13 +111,4 @@ int socket_t::set_non_block()
 
 #endif
 	return ret;
-}
-
-int socket_t::close_on_exec()
-{
-#ifndef _WIN32
-	if (fcntl(sockfd_, F_SETFD, FD_CLOEXEC) == -1)
-		return -1;
-#endif
-	return 0;
 }

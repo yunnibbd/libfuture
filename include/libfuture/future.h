@@ -68,6 +68,9 @@ namespace libfuture
 					}
 				} while (0);
 
+				//一个协程去co_await一个协程，被co_await的协程已经执行完毕
+				handle_.destroy();
+
 				if (!h.done())
 				{
 					current_scheduler()->set_current_handle(h);

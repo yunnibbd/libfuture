@@ -78,7 +78,7 @@ bool scheduler_t::iocp_loop()
 				return false;
 		}
 		
-		//std::cout << "iocp will sleep " << sleep_msec << std::endl;
+		std::cout << "iocp will sleep " << sleep_msec << std::endl;
 		int ret = iocp_.wait(io_event, sleep_msec);
 		if (ret < 0)
 		{
@@ -95,6 +95,7 @@ bool scheduler_t::iocp_loop()
 		case IO_TYPE::RECV:
 		{
 			socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+			socket->is_post_event = false;
 			auto iter = socketio_queue_.find(socket->sockfd());
 			if (iter != socketio_queue_.end())
 			{
@@ -109,6 +110,7 @@ bool scheduler_t::iocp_loop()
 		case IO_TYPE::SEND:
 		{
 			socket_t* socket = reinterpret_cast<socket_t*>(io_event.data.ptr);
+			socket->is_post_event = false;
 			auto iter = socketio_queue_.find(socket->sockfd());
 			if (iter != socketio_queue_.end())
 			{
@@ -136,7 +138,7 @@ bool scheduler_t::iocp_loop()
 		break;
 		case IO_TYPE::CONNECT:
 		{
-			//暂未实现
+			//实现不在此
 		}
 		break;
 		default:
@@ -226,6 +228,7 @@ bool scheduler_t::epoll_loop()
 						ready_queue_.insert(iter->second);
 						socketio_queue_.erase(iter);
 					}
+					epoll_.ctl(EPOLL_CTL_DEL, socket, NULL);
 				}
 			}
 			break;
@@ -244,6 +247,7 @@ bool scheduler_t::epoll_loop()
 						ready_queue_.insert(iter->second);
 						socketio_queue_.erase(iter);
 					}
+					epoll_.ctl(EPOLL_CTL_DEL, socket, NULL);
 				}
 			}
 			break;
@@ -264,7 +268,7 @@ bool scheduler_t::epoll_loop()
 			break;
 			case EVENT_CONNECT:
 			{
-				//暂未实现
+				//实现不在此
 			}
 			break;
 			default:
@@ -307,6 +311,7 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				socket->is_register = true;
 			}
 			iocp_.post_send(p_io_data, sockfd);
+			socket->is_post_event = true;
 			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 		}
 		break;
@@ -326,6 +331,7 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 				socket->is_register = true;
 			}
 			iocp_.post_recv(p_io_data, sockfd);
+			socket->is_post_event = true;
 			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 		}
 		break;
@@ -347,28 +353,16 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 		case EVENT_SEND:
 		{
 			socket->set_event_type(EVENT_SEND);
-			if (socket->is_register)
-				epoll_.ctl(EPOLL_CTL_MOD, socket, EPOLLOUT);
-			else
-			{
-				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLOUT))
-					break;
-				socket->is_register = true;
-			}
+			if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLOUT))
+				break;
 			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
 		}
 		break;
 		case EVENT_RECV:
 		{
 			socket->set_event_type(EVENT_RECV);
-			if (socket->is_register)
-				epoll_.ctl(EPOLL_CTL_MOD, socket, EPOLLIN);
-			else
-			{
-				if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
-					break;
-				socket->is_register = true;
-			}
+			if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
+				break;
 			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
 		}
 		break;
@@ -396,26 +390,6 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 		break;
 	}
 #endif
-}
-
-/*
- * @brief 添加connect事件进入socketio队列
- * @param socket 要通信的socket
- * @param ip 要连接的ip地址
- * @param port 要连接的端口
- * @return
- */
-void scheduler_t::add_to_connect(socket_t* socket, const char* ip, unsigned short port)
-{
-	int sockfd = socket->sockfd();
-	
-	sockaddr_in serv;
-	memset(&serv, 0, sizeof(serv));
-	serv.sin_family = AF_INET;
-	serv.sin_port = htons(port);
-	serv.sin_addr.s_addr = inet_addr(ip);
-	
-	socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
 }
 
 /**

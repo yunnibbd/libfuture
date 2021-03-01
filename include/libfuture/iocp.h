@@ -3,17 +3,8 @@
 #include "export_api.h"
 #include "error_code.h"
 #include "socket.h"
+#include "include.h"
 #ifdef _WIN32
-
-#ifndef USE_IOCP
-#define USE_IOCP
-#endif
-
-#define WIN32_LEAN_AND_MEAN
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#include <Windows.h>
-#include <WinSock2.h>
-#include <MSWSock.h>
 
 namespace libfuture
 {
