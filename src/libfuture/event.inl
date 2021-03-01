@@ -77,6 +77,7 @@ namespace libfuture
 				//真的出错了，
 				co_return false;
 #endif
+			std::cout << "co_await open_connection" << std::endl;
 			co_await sleep_sec;
 		}
 	}
@@ -87,7 +88,7 @@ namespace libfuture
 	 * @param socket
 	 * @return 协程对象
 	 */
-	LIBFUTURE_API inline future_t<> open_accept(socket_t* socket)
+	LIBFUTURE_API inline future_t<> open_accept_raw(socket_t* socket)
 	{
 		awaitable_t<> awaitable;
 
@@ -97,35 +98,92 @@ namespace libfuture
 	}
 
 	/**
-	 * @brief 读数据
+	 * @brief 接收一个连接
+	 * @param socket
+	 * @return 客户端地址指针
+	 */
+	LIBFUTURE_API inline future_t<sockaddr_in*> open_accept(socket_t* socket)
+	{
+		co_await open_accept_raw(socket);
+		sockaddr_in* client_addr = current_scheduler()->get_accept_addr();
+		co_return client_addr;
+	}
+
+	/**
+	 * @brief 读数据，不建议直接调用，使用buffer_read
 	 * @param buffer 数据的存放点
 	 * @param socket 往哪里读
+	 * @param timeout 超时时间
 	 * @return 协程对象
 	 */
-	LIBFUTURE_API inline future_t<> buffer_read(buffer_t* buffer, socket_t* socket)
+	template <class Rep, class Period>
+	LIBFUTURE_API inline future_t<> buffer_read_raw(buffer_t* buffer, socket_t* socket, std::chrono::duration<Rep, Period> timeout)
 	{
 		awaitable_t<> awaitable;
 
 		socket->set_recv_buf(buffer);
-		current_scheduler()->add_to_socketio(socket, EVENT_RECV);
+		auto sche = current_scheduler();
+		int64_t timeout_msec = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() +
+			utils_t::get_cur_timestamp();
+		sche->add_to_socketio(socket, EVENT_RECV, timeout_msec);
+		sche->sleep_until(timeout_msec);
 
 		return awaitable.get_future();
+	}
+
+	/**
+	 * @brief 写数据，不建议直接调用，使用buffer_write
+	 * @param buffer 数据源
+	 * @param socket 往哪里写
+	 * @param timeout 超时时间
+	 * @return 协程对象
+	 */
+	template <class Rep, class Period>
+	LIBFUTURE_API inline future_t<> buffer_write_raw(buffer_t* buffer, socket_t* socket, std::chrono::duration<Rep, Period> timeout)
+	{
+		awaitable_t<> awaitable;
+
+		socket->set_send_buf(buffer);
+		auto sche = current_scheduler();
+		int64_t timeout_msec = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() +
+			utils_t::get_cur_timestamp();
+		sche->add_to_socketio(socket, EVENT_SEND, timeout_msec);
+		sche->sleep_until(timeout_msec);
+
+		return awaitable.get_future();
+	}
+
+	/**
+	 * @brief 读数据
+	 * @param buffer 数据的存放点
+	 * @param socket 往哪里读
+	 * @param timeout 超时时间
+	 * @return bool 是否超时
+	 */
+	template <class Rep, class Period>
+	LIBFUTURE_API inline future_t<bool> buffer_read(buffer_t* buffer, socket_t* socket, std::chrono::duration<Rep, Period> timeout)
+	{
+		co_await buffer_read_raw(buffer, socket, timeout);
+		if (socket->is_timeout)
+			co_return true;
+		else
+			co_return false;
 	}
 
 	/**
 	 * @brief 写数据
 	 * @param buffer 数据源
 	 * @param socket 往哪里写
-	 * @return 协程对象
+	 * @param timeout 超时时间
+	 * @return bool 是否超时
 	 */
-	LIBFUTURE_API inline future_t<> buffer_write(buffer_t* buffer, socket_t* socket)
+	template <class Rep, class Period>
+	LIBFUTURE_API inline future_t<bool> buffer_write(buffer_t* buffer, socket_t* socket, std::chrono::duration<Rep, Period> timeout)
 	{
-		awaitable_t<> awaitable;
-
-		socket->set_send_buf(buffer);
-		current_scheduler()->add_to_socketio(socket, EVENT_SEND);
-
-		return awaitable.get_future();
+		co_await buffer_write_raw(buffer, socket, timeout);
+		if (socket->is_timeout)
+			co_return true;
+		else
+			co_return false;
 	}
-
 }

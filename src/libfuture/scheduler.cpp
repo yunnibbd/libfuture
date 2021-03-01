@@ -35,50 +35,40 @@ bool scheduler_t::iocp_loop()
 	IO_EVENT io_event;
 	while (true)
 	{
+		if (!ready_queue_.empty())
+			return false;
+
+		auto cur_ms = utils_t::get_cur_timestamp();
+
 		if (socketio_queue_.empty())
 		{
-			if (ready_queue_.empty())
+			if (sleep_queue_.empty())
 			{
-				if (sleep_queue_.empty())
-				{
-					if (suspend_queue_.empty() && depend_queue_.empty())
-						return true;
-					else
-						return false;
-				}
+				if (suspend_queue_.empty() && depend_queue_.empty())
+					return true;
 				else
-				{
-					sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-					if (sleep_msec <= 0)
-						return false;
-				}
+					return false;
 			}
 			else
-				return false;
+			{
+				sleep_msec = sleep_queue_.begin()->first - cur_ms;
+				if (sleep_msec <= 0)
+					return false;
+			}
 		}
 		else
 		{
-			if (ready_queue_.empty())
-			{
-				if (sleep_queue_.empty())
-				{
-					if (ready_queue_.empty())
-						sleep_msec = INFINITE;
-					else
-						return false;
-				}
-				else
-				{
-					sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-					if (sleep_msec < 0)
-						return false;
-				}
-			}
+			if (sleep_queue_.empty())
+				sleep_msec = INFINITE;
 			else
-				return false;
+			{
+				sleep_msec = sleep_queue_.begin()->first - cur_ms;
+				if (sleep_msec < 0)
+					return false;
+			}
 		}
 		
-		std::cout << "iocp will sleep " << sleep_msec << std::endl;
+		//std::cout << "iocp will sleep " << sleep_msec << std::endl;
 		int ret = iocp_.wait(io_event, sleep_msec);
 		if (ret < 0)
 		{
@@ -105,6 +95,9 @@ bool scheduler_t::iocp_loop()
 			auto p_buffer = socket->p_recv_buf();
 			if (p_buffer)
 				p_buffer->read4iocp(io_event.bytesTrans);
+
+			//取消超时
+			cancel_to_timeout(socket);
 		}
 		break;
 		case IO_TYPE::SEND:
@@ -120,6 +113,9 @@ bool scheduler_t::iocp_loop()
 			auto p_buffer = socket->p_send_buf();
 			if (p_buffer)
 				p_buffer->write2iocp(io_event.bytesTrans);
+
+			//取消超时
+			cancel_to_timeout(socket);
 		}
 		break;
 		case IO_TYPE::ACCEPT:
@@ -157,47 +153,37 @@ bool scheduler_t::epoll_loop()
 {
 	int64_t sleep_msec = -1;
 
+	if (!ready_queue_.empty())
+		return false;
+
+	auto cur_ms = utils_t::get_cur_timestamp();
+
 	if (socketio_queue_.empty())
 	{
-		if (ready_queue_.empty())
+		if (sleep_queue_.empty())
 		{
-			if (sleep_queue_.empty())
-			{
-				if (suspend_queue_.empty() && depend_queue_.empty())
-					return true;
-				else
-					return false;
-			}
+			if (suspend_queue_.empty() && depend_queue_.empty())
+				return true;
 			else
-			{
-				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-				if (sleep_msec <= 0)
-					return false;
-			}
+				return false;
 		}
 		else
-			return false;
+		{
+			sleep_msec = sleep_queue_.begin()->first - cur_ms;
+			if (sleep_msec <= 0)
+				return false;
+		}
 	}
 	else
 	{
-		if (ready_queue_.empty())
-		{
-			if (sleep_queue_.empty())
-			{
-				if (ready_queue_.empty())
-					sleep_msec = -1;
-				else
-					return false;
-			}
-			else
-			{
-				sleep_msec = sleep_queue_.begin()->first - utils_t::get_cur_timestamp();
-				if (sleep_msec < 0)
-					return false;
-			}
-		}
+		if (sleep_queue_.empty())
+			sleep_msec = -1;
 		else
-			return false;
+		{
+			sleep_msec = sleep_queue_.begin()->first - cur_ms;
+			if (sleep_msec < 0)
+				return false;
+		}
 	}
 
 	int ret = epoll_.wait(sleep_msec);
@@ -229,6 +215,9 @@ bool scheduler_t::epoll_loop()
 						socketio_queue_.erase(iter);
 					}
 					epoll_.ctl(EPOLL_CTL_DEL, socket, NULL);
+
+					//取消超时
+					cancel_to_timeout(socket);
 				}
 			}
 			break;
@@ -248,6 +237,9 @@ bool scheduler_t::epoll_loop()
 						socketio_queue_.erase(iter);
 					}
 					epoll_.ctl(EPOLL_CTL_DEL, socket, NULL);
+
+					//取消超时
+					cancel_to_timeout(socket);
 				}
 			}
 			break;
@@ -281,16 +273,40 @@ bool scheduler_t::epoll_loop()
 
 scheduler_t::~scheduler_t()
 {
+	
+}
 
+/**
+ * @brief io事件在超时时间内触发，取消超时
+ * @param socket
+ * @return
+ */
+void scheduler_t::cancel_to_timeout(socket_t* socket)
+{
+	if (!socket)
+		return;
+	//没有超时，做好标记以及清除超时
+	socket->is_timeout = false;
+	auto sockfd_sleep_iter = sockfd_sleep_queue_.find(socket->sockfd());
+	auto sleep_socket_iter = sleep_socket_queue_.find(sockfd_sleep_iter->second);
+	//从休眠队列中取消超时
+	auto sleep_queue_iter = sleep_queue_.find(sockfd_sleep_iter->second);
+	if (sleep_queue_iter != sleep_queue_.end())
+		sleep_queue_.erase(sleep_queue_iter);
+	//从映射中移除
+	if (sockfd_sleep_iter != sockfd_sleep_queue_.end())
+		sockfd_sleep_queue_.erase(sockfd_sleep_iter);
+	if (sleep_socket_iter != sleep_socket_queue_.end())
+		sleep_socket_queue_.erase(sleep_socket_iter);
 }
 
 /**
  * @brief 添加进socketio队列
  * @param socket 要通信的socket
  * @param type 本socket要进行的操作类型
- * @return
+ * @param timeout 超时时间戳
  */
-void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
+void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout)
 {
 #ifdef _WIN32
 	switch (type)
@@ -312,7 +328,11 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			}
 			iocp_.post_send(p_io_data, sockfd);
 			socket->is_post_event = true;
-			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
+			auto cu_handle = current_handle();
+			socketio_queue_.insert(std::make_pair(sockfd, cu_handle));
+			//插入映射队列
+			sockfd_sleep_queue_.insert(std::make_pair(sockfd, timeout));
+			sleep_socket_queue_.insert(std::make_pair(timeout, socket));
 		}
 		break;
 		case EVENT_RECV:
@@ -332,7 +352,11 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			}
 			iocp_.post_recv(p_io_data, sockfd);
 			socket->is_post_event = true;
-			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
+			auto cu_handle = current_handle();
+			socketio_queue_.insert(std::make_pair(sockfd, cu_handle));
+			//插入映射队列
+			sockfd_sleep_queue_.insert(std::make_pair(sockfd, timeout));
+			sleep_socket_queue_.insert(std::make_pair(timeout, socket));
 		}
 		break;
 		case EVENT_ACCEPT:
@@ -355,7 +379,11 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			socket->set_event_type(EVENT_SEND);
 			if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLOUT))
 				break;
-			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
+			int sockfd = socket->sockfd();
+			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
+			//插入映射队列
+			sockfd_sleep_queue_.insert(std::make_pair(sockfd, timeout));
+			sleep_socket_queue_.insert(std::make_pair(timeout, socket));
 		}
 		break;
 		case EVENT_RECV:
@@ -363,7 +391,11 @@ void scheduler_t::add_to_socketio(socket_t* socket, event_type_enum type)
 			socket->set_event_type(EVENT_RECV);
 			if (-1 == epoll_.ctl(EPOLL_CTL_ADD, socket, EPOLLIN))
 				break;
-			socketio_queue_.insert(std::make_pair(socket->sockfd(), current_handle()));
+			int sockfd = socket->sockfd();
+			socketio_queue_.insert(std::make_pair(sockfd, current_handle()));
+			//插入映射队列
+			sockfd_sleep_queue_.insert(std::make_pair(sockfd, timeout));
+			sleep_socket_queue_.insert(std::make_pair(timeout, socket));
 		}
 		break;
 		case EVENT_ACCEPT:

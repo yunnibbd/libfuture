@@ -88,9 +88,10 @@ namespace libfuture
 		 * @brief 添加进socketio队列
 		 * @param socket 要通信的socket
 		 * @param type 本socket要进行的操作类型
+		 * @param timeout 超时时间戳
 		 * @return
 		 */
-		virtual void add_to_socketio(socket_t* socket, event_type_enum type) = 0;
+		virtual void add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout = 0) = 0;
 
 		///*
 		// * @brief 添加connect事件进入socketio队列
@@ -165,7 +166,7 @@ namespace libfuture
 		 * @return bool 挂起队列是否为空
 		 */
 		void update_suspend_queue();
-
+		
 		//调度器正在执行的协程句柄
 		handle_type current_handle_;
 		//预备队列
@@ -174,8 +175,15 @@ namespace libfuture
 		std::set<handle_type> suspend_queue_;
 		//依赖队列
 		std::multimap<handle_type, handle_type> depend_queue_;
+		//被依赖的协程句柄
+		std::set<handle_type> in_depend_queue_second_;
 		//socket收发消息队列
 		std::map<int, handle_type> socketio_queue_;
+		//为了增加socketio收发的超时，提供一个休眠队列和socket队列的关联
+		//让socketio队列事件触发后可以找到休眠队列取消超时
+		std::map<int, uint64_t> sockfd_sleep_queue_;
+		//当休眠队列触发后可以找到sockio队列对应的事件从而取消
+		std::map<uint64_t, socket_t*> sleep_socket_queue_;
 		//休眠队列
 		std::multimap<uint64_t, handle_type> sleep_queue_;
 		//休眠队列中的协程

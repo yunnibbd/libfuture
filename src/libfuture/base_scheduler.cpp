@@ -7,6 +7,8 @@
 #include "clog.h"
 #include "buffer.h"
 #include "common.h"
+#include <iostream>
+using namespace std;
 using namespace libfuture;
 
 /**
@@ -62,6 +64,7 @@ void scheduler_impl_t::destory_scheduler()
 void scheduler_impl_t::add_to_depend(handle_type handle, handle_type dependent)
 {
 	depend_queue_.insert(std::make_pair(handle, dependent));
+	in_depend_queue_second_.insert(dependent);
 }
 
 /**
@@ -158,6 +161,26 @@ void scheduler_impl_t::update_sleep_queue()
 				if (can_trigger)
 				{
 					set_current_handle(handle);
+					auto sleep_socket_iter = sleep_socket_queue_.find(begin->first);
+					if (sleep_socket_iter != sleep_socket_queue_.end())
+					{
+						//能找到映射，说明是一个注册了超时的socketio事件
+						//socket的收发超时了
+						//要处理标记以及取消socketio队列对此socket的监听和清除映射
+						auto socket = sleep_socket_iter->second;
+						int sockfd = socket->sockfd();
+						socket->is_timeout = true;
+						auto socketio_iter = socketio_queue_.find(sockfd);
+						if (socketio_iter != socketio_queue_.end())
+							//取消io监听
+							socketio_queue_.erase(socketio_iter);
+						auto sockfd_sleep_iter = sockfd_sleep_queue_.find(sockfd);
+						auto sleep_socket_iter = sleep_socket_queue_.find(begin->first);
+						if (sockfd_sleep_iter != sockfd_sleep_queue_.end())
+							sockfd_sleep_queue_.erase(sockfd_sleep_iter);
+						if (sleep_socket_iter != sleep_socket_queue_.end())
+							sleep_socket_queue_.erase(sleep_socket_iter);
+					}
 					handle.resume();
 				}
 			} while (0);
@@ -190,7 +213,11 @@ void scheduler_impl_t::update_ready_queue()
 			set_current_handle(*begin);
 			begin->resume();
 			if (begin->done())
-				begin->destroy();
+			{
+				auto iter = in_depend_queue_second_.find(*begin);
+				if (iter == in_depend_queue_second_.end())
+					begin->destroy();
+			}
 		} while (0);
 		begin = ready_queue_.erase(begin);
 	}
@@ -230,18 +257,21 @@ void scheduler_impl_t::update_depend_queue()
 					begin->first.resume();
 					auto start = depend_queue_.lower_bound(begin->first);
 					auto stop = depend_queue_.upper_bound(begin->first);
-					for (; start != stop; )
-					{
-						//因为依赖，后依赖满足后被唤醒，所有被依赖项应该被释放
-						start->second.destroy();
-						++start;
-					}
 
 					if (begin->first.done())
+					{
 						begin->first.destroy();
+						for (; start != stop; )
+						{
+							//因为依赖，后依赖满足后被唤醒，所有被依赖项应该被释放
+							start->second.destroy();
+							++start;
+						}
+					}
 
 					//当前协程已经没有依赖项了，如果还没有执行完成代表被别的队列捕获了
 					//在这里从依赖队列移除
+					in_depend_queue_second_.erase(begin->second);
 					begin = depend_queue_.erase(begin);
 				}
 			}

@@ -11,22 +11,32 @@ future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 	while (true)
 	{
 		buffer.clear();
-		co_await buffer_read(&buffer, client_socket);
+		//超时时间为5秒
+		bool is_timeout = co_await buffer_read(&buffer, client_socket, 5s);
+		if (is_timeout)
+		{
+			cout << "读取超时" << endl;
+			break;
+		}
 
 		if (buffer.has_data())
 		{
 			//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
 			buffer.data()[buffer.data_len()] = 0;
 			cout << "recv from " << addr << ":" << buffer.data() << endl;
-			co_await buffer_write(&buffer, client_socket);
+			//超时时间为5秒
+			bool is_timeout = co_await buffer_write(&buffer, client_socket, 5000ms);
+			if (is_timeout)
+			{
+				cout << "发送超时" << endl;
+				break;
+			}
 		}
 		else
-		{
-			cout << "client leave" << endl;
-			delete client_socket;
-			co_return;
-		}
+			break;
 	}
+	cout << "client leave" << endl;
+	delete client_socket;
 	co_return;
 }
 
@@ -37,9 +47,7 @@ future_t<> test_accept()
 	{
 		client_socket = new socket_t();
 		//在接收到客户端之前会一直挂起
-		co_await open_accept(client_socket);
-		//获得地址信息
-		sockaddr_in* client_addr = current_scheduler()->get_accept_addr();
+		sockaddr_in* client_addr = co_await open_accept(client_socket);
 		stringstream ss;
 		ss << inet_ntoa(client_addr->sin_addr) << ":";
 		ss << ntohs(client_addr->sin_port);

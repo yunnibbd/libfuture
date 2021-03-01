@@ -58,6 +58,9 @@ namespace libfuture
 		void set_recv_buf(buffer_t* buffer) { p_recv_buf_ = buffer; }
 		buffer_t* p_recv_buf() { return p_recv_buf_; }
 
+		//是否读写超时，作为判断用
+		bool is_timeout = false;
+
 #ifdef _WIN32
 		//是否被注册
 		bool is_register = false;

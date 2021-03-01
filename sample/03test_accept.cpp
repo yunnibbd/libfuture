@@ -6,21 +6,33 @@ using namespace libfuture;
 future_t<> test_accept_recv()
 {
 	socket_t client_socket = socket_t(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	co_await open_accept(&client_socket);
+	//可以根据客户端地址打印出来，此处不打印
+	sockaddr_in* client_addr = co_await open_accept(&client_socket);
 
 	buffer_t buffer;
 
 	while (true)
 	{
 		buffer.clear();
-		co_await buffer_read(&buffer, &client_socket);
+		bool is_timeout = co_await buffer_read(&buffer, &client_socket, 3s);
+		if (is_timeout)
+		{
+			cout << "读取超时" << endl;
+			co_return;
+		}
 
 		if (buffer.has_data())
 		{
 			//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
 			buffer.data()[buffer.data_len()] = 0;
 			cout << "recv from client " << buffer.data() << endl;
-			co_await buffer_write(&buffer, &client_socket);
+			//设置超时时间为2s
+			bool is_timeout = co_await buffer_write(&buffer, &client_socket, 2000ms);
+			if (is_timeout)
+			{
+				cout << "发送超时" << endl;
+				co_return;
+			}
 		}
 		else
 		{

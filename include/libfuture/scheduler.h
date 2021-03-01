@@ -32,9 +32,9 @@ namespace libfuture
 		 * @brief 添加进socketio队列
 		 * @param socket 要通信的socket
 		 * @param type 本socket要进行的操作类型
-		 * @return
+		 * @param timeout 超时时间戳
 		 */
-		virtual void add_to_socketio(socket_t* socket, event_type_enum type) override;
+		virtual void add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout = 0) override;
 
 		/**
 		 * @brief 调度socketio_queue_
@@ -70,6 +70,13 @@ namespace libfuture
 		 */
 		bool epoll_loop();
 #endif
+
+		/**
+		 * @brief io事件在超时时间内触发，取消超时
+		 * @param socket
+		 * @return
+		 */
+		void cancel_to_timeout(socket_t* socket);
 
 		//用于accept的时候的客户端地址
 		struct sockaddr_in client_addr_ = { 0 };

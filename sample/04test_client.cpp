@@ -10,7 +10,7 @@ Accept-Encoding: gzip, deflate\
 Accept-Language: zh-CN, zh; q=0.9\
 Cache-Control: max-age=0\
 Connection: keep-alive\
-Host: 14.215.177.39\
+Host: 110.43.34.66\
 Upgrade-Insecure-Requests : 1\
 User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36";
 
@@ -22,20 +22,34 @@ future_t<> test_connect()
 	//连接b站，肯定会被拒绝，但是还是会返回一些消息的
 	bool has_c = co_await open_connection(&client_socket, "110.43.34.66", 443);
 	if (!has_c)
+	{
 		cout << "连接失败" << endl;
+		co_return;
+	}
 
 	cout << "连接成功" << endl;
 
 	buffer.push(send_str.c_str(), send_str.size());
 
-	co_await buffer_write(&buffer, &client_socket);
+	bool is_timeout = co_await buffer_write(&buffer, &client_socket, 5s);
 
+	if (is_timeout)
+	{
+		cout << "超时未发送" << endl;
+		co_return;
+	}
 	cout << "发送消息成功" << endl;
 
 	buffer.clear();
 
 	//看看回了什么消息
-	co_await buffer_read(&buffer, &client_socket);
+	is_timeout = co_await buffer_read(&buffer, &client_socket, 5s);
+
+	if (is_timeout)
+	{
+		cout << "超时未读取到消息" << endl;
+		co_return;
+	}
 
 	if (buffer.has_data())
 	{
