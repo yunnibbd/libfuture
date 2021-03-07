@@ -6,6 +6,7 @@
 
 namespace libfuture
 {
+
 	/**
 	 * @brief 异步连接
 	 * @param socket

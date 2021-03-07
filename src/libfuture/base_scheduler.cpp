@@ -8,6 +8,7 @@
 #include "buffer.h"
 #include "common.h"
 #include <iostream>
+#include <vector>
 using namespace std;
 using namespace libfuture;
 
@@ -64,7 +65,6 @@ void scheduler_impl_t::destory_scheduler()
 void scheduler_impl_t::add_to_depend(handle_type handle, handle_type dependent)
 {
 	depend_queue_.insert(std::make_pair(handle, dependent));
-	in_depend_queue_second_.insert(dependent);
 }
 
 /**
@@ -212,12 +212,6 @@ void scheduler_impl_t::update_ready_queue()
 			}
 			set_current_handle(*begin);
 			begin->resume();
-			if (begin->done())
-			{
-				auto iter = in_depend_queue_second_.find(*begin);
-				if (iter == in_depend_queue_second_.end())
-					begin->destroy();
-			}
 		} while (0);
 		begin = ready_queue_.erase(begin);
 	}
@@ -234,45 +228,38 @@ void scheduler_impl_t::update_depend_queue()
 	auto end = depend_queue_.end();
 	for (; begin != end; )
 	{
-		bool can_trigger = true;
 		auto start = depend_queue_.lower_bound(begin->first);
 		auto stop = depend_queue_.upper_bound(begin->first);
+
+		vector<handle_type> after_destory;
+
 		for (; start != end; )
 		{
 			if (!start->second.done())
-			{
-				can_trigger = false;
 				break;
-			}
+			after_destory.push_back(start->second);
 			++start;
 		}
-		if (can_trigger)
+
+		if (start == stop)
 		{
-			if (!begin->first.done())
+			auto handle = begin->first;
+			//表示所有的当前协程所有的依赖协程都已经执行完毕
+			if (!handle.done())
 			{
 				//查询当前协程是否在sleep_queue_中
-				if (in_sleep_queue_.find(begin->first) == in_sleep_queue_.end())
+				if (in_sleep_queue_.find(handle) == in_sleep_queue_.end())
 				{
-					set_current_handle(begin->first);
-					begin->first.resume();
-					auto start = depend_queue_.lower_bound(begin->first);
-					auto stop = depend_queue_.upper_bound(begin->first);
+					set_current_handle(handle);
+					depend_queue_.erase(begin);
+					handle.resume();
 
-					if (begin->first.done())
-					{
-						begin->first.destroy();
-						for (; start != stop; )
-						{
-							//因为依赖，后依赖满足后被唤醒，所有被依赖项应该被释放
-							start->second.destroy();
-							++start;
-						}
-					}
+					if (handle.done())
+						handle.destroy();
 
-					//当前协程已经没有依赖项了，如果还没有执行完成代表被别的队列捕获了
-					//在这里从依赖队列移除
-					in_depend_queue_second_.erase(begin->second);
-					begin = depend_queue_.erase(begin);
+					for (auto& del_h : after_destory)
+						//因为依赖，后依赖满足后被唤醒，所有被依赖项应该被释放
+						del_h.destroy();
 				}
 			}
 		}

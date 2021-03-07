@@ -8,6 +8,11 @@
 
 namespace libfuture
 {
+	template <typename _Ty>
+	class future_t;
+
+	using future_void_t = future_t<void>;
+
 	/**
 	 * @brief 调度器，调度io
 	 */
@@ -29,21 +34,6 @@ namespace libfuture
 		virtual ~scheduler_t();
 
 		/**
-		 * @brief 添加进socketio队列
-		 * @param socket 要通信的socket
-		 * @param type 本socket要进行的操作类型
-		 * @param timeout 超时时间戳
-		 */
-		virtual void add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout = 0) override;
-
-		/**
-		 * @brief 调度socketio_queue_
-		 * @param
-		 * @return bool 所有任务是否处理完毕
-		 */
-		virtual bool update_socketio_queue() override;
-
-		/**
 		 * @brief 初始化
 		 * @param
 		 * @return
@@ -54,7 +44,22 @@ namespace libfuture
 
 		sockaddr_in* get_accept_addr() { return &client_addr_; }
 
+		/**
+		 * @brief 添加进socketio队列
+		 * @param socket 要通信的socket
+		 * @param type 本socket要进行的操作类型
+		 * @param timeout 超时时间戳
+		 */
+		virtual void add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout = 0) override;
 	private:
+
+		/**
+		 * @brief 调度socketio_queue_
+		 * @param
+		 * @return bool 所有任务是否处理完毕
+		 */
+		virtual bool update_socketio_queue() override;
+
 #ifdef _WIN32
 		/**
 		 * @brief iocp的处理io事件方式
