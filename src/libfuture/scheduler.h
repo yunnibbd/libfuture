@@ -5,6 +5,7 @@
 #include "socket.h"
 #include "export_api.h"
 #include "base_scheduler.h"
+#include "scheduler_private_api.h"
 
 namespace libfuture
 {
@@ -18,6 +19,13 @@ namespace libfuture
 	 */
 	class LIBFUTURE_API scheduler_t : public scheduler_impl_t
 	{
+		friend class scheduler_private_api;
+
+		template <typename> friend struct promise_t;
+
+		template <typename> friend class future_t;
+
+		template <typename> friend class future_impl_t;
 	public:
 		/**
 		 * @brief 获得scheduler单件对象
@@ -44,6 +52,7 @@ namespace libfuture
 
 		sockaddr_in* get_accept_addr() { return &client_addr_; }
 
+	private:
 		/**
 		 * @brief 添加进socketio队列
 		 * @param socket 要通信的socket
@@ -51,7 +60,6 @@ namespace libfuture
 		 * @param timeout 超时时间戳
 		 */
 		virtual void add_to_socketio(socket_t* socket, event_type_enum type, uint64_t timeout = 0) override;
-	private:
 
 		/**
 		 * @brief 调度socketio_queue_

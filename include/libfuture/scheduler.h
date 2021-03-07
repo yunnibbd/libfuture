@@ -5,14 +5,27 @@
 #include "socket.h"
 #include "export_api.h"
 #include "base_scheduler.h"
+#include "scheduler_private_api.h"
 
 namespace libfuture
 {
+	template <typename _Ty>
+	class future_t;
+
+	using future_void_t = future_t<void>;
+
 	/**
 	 * @brief 调度器，调度io
 	 */
 	class LIBFUTURE_API scheduler_t : public scheduler_impl_t
 	{
+		friend class scheduler_private_api;
+
+		template <typename> friend struct promise_t;
+
+		template <typename> friend class future_t;
+
+		template <typename> friend class future_impl_t;
 	public:
 		/**
 		 * @brief 获得scheduler单件对象
@@ -29,6 +42,18 @@ namespace libfuture
 		virtual ~scheduler_t();
 
 		/**
+		 * @brief 初始化
+		 * @param
+		 * @return
+		 */
+		void init();
+
+		void set_init_sockfd(int sockfd) { init_socket_ = sockfd; }
+
+		sockaddr_in* get_accept_addr() { return &client_addr_; }
+
+	private:
+		/**
 		 * @brief 添加进socketio队列
 		 * @param socket 要通信的socket
 		 * @param type 本socket要进行的操作类型
@@ -43,18 +68,6 @@ namespace libfuture
 		 */
 		virtual bool update_socketio_queue() override;
 
-		/**
-		 * @brief 初始化
-		 * @param
-		 * @return
-		 */
-		void init();
-
-		void set_init_sockfd(int sockfd) { init_socket_ = sockfd; }
-
-		sockaddr_in* get_accept_addr() { return &client_addr_; }
-
-	private:
 #ifdef _WIN32
 		/**
 		 * @brief iocp的处理io事件方式

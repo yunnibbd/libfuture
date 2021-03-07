@@ -212,6 +212,7 @@ void scheduler_impl_t::update_ready_queue()
 			}
 			set_current_handle(*begin);
 			begin->resume();
+			
 		} while (0);
 		begin = ready_queue_.erase(begin);
 	}

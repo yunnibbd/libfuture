@@ -3,6 +3,7 @@
 #include "promise.h"
 #include "sleep.h"
 #include "common.h"
+#include "scheduler_private_api.h"
 
 namespace libfuture
 {
@@ -78,7 +79,6 @@ namespace libfuture
 				//真的出错了，
 				co_return false;
 #endif
-			std::cout << "co_await open_connection" << std::endl;
 			co_await sleep_sec;
 		}
 	}
@@ -93,7 +93,7 @@ namespace libfuture
 	{
 		awaitable_t<> awaitable;
 
-		current_scheduler()->add_to_socketio(socket, EVENT_ACCEPT);
+		scheduler_private_api::add_to_socketio(socket, EVENT_ACCEPT);
 
 		return awaitable.get_future();
 	}
@@ -123,11 +123,10 @@ namespace libfuture
 		awaitable_t<> awaitable;
 
 		socket->set_recv_buf(buffer);
-		auto sche = current_scheduler();
 		int64_t timeout_msec = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() +
 			utils_t::get_cur_timestamp();
-		sche->add_to_socketio(socket, EVENT_RECV, timeout_msec);
-		sche->sleep_until(timeout_msec);
+		scheduler_private_api::add_to_socketio(socket, EVENT_RECV, timeout_msec);
+		scheduler_private_api::sleep_until(timeout_msec);
 
 		return awaitable.get_future();
 	}
@@ -145,11 +144,10 @@ namespace libfuture
 		awaitable_t<> awaitable;
 
 		socket->set_send_buf(buffer);
-		auto sche = current_scheduler();
 		int64_t timeout_msec = std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() +
 			utils_t::get_cur_timestamp();
-		sche->add_to_socketio(socket, EVENT_SEND, timeout_msec);
-		sche->sleep_until(timeout_msec);
+		scheduler_private_api::add_to_socketio(socket, EVENT_SEND, timeout_msec);
+		scheduler_private_api::sleep_until(timeout_msec);
 
 		return awaitable.get_future();
 	}

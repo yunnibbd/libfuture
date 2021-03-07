@@ -3,24 +3,20 @@
 #include <iostream>
 using namespace std;
 using namespace libfuture;
+#define BUF_LEN 10240
 
 string send_str = "\
-Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\
-Accept-Encoding: gzip, deflate\
-Accept-Language: zh-CN, zh; q=0.9\
-Cache-Control: max-age=0\
-Connection: keep-alive\
-Host: 110.43.34.66\
-Upgrade-Insecure-Requests : 1\
-User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36";
+GET / HTTP/1.1\r\n\
+Host: 42.192.165.127\r\n\
+Connection: keep-alive\r\n\r\n";
 
-future_t<> test_connect()
+future_t<> test_connect(const char* ip, unsigned short port)
 {
-	buffer_t buffer;
+	//空间要大
+	buffer_t buffer(BUF_LEN + 1);
 	socket_t client_socket(AF_INET, SOCK_STREAM, 0);
 
-	//连接b站，肯定会被拒绝，但是还是会返回一些消息的
-	bool has_c = co_await open_connection(&client_socket, "110.43.34.66", 443);
+	bool has_c = co_await open_connection(&client_socket, ip, port);
 	if (!has_c)
 	{
 		cout << "连接失败" << endl;
@@ -54,7 +50,10 @@ future_t<> test_connect()
 	if (buffer.has_data())
 	{
 		//防止烫烫或屯屯
-		buffer.data()[buffer.data_len()] = 0;
+		int len = buffer.data_len();
+		if (len >= BUF_LEN)
+			len = BUF_LEN;
+		buffer.data()[len] = 0;
 		cout << buffer.data() << endl;
 	}
 
@@ -70,7 +69,8 @@ int main(int argc, char** argv)
 	auto sche = current_scheduler();
 	sche->init();
 
-	cpp test_connect();
+	for (int i = 0; i < 10; ++i)
+		cpp test_connect("42.192.165.127", 80);
 
 	sche->run_until_no_task();
 

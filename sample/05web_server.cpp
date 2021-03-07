@@ -4,10 +4,11 @@
 #include <string>
 using namespace std;
 using namespace libfuture;
+#define BUF_LEN 10240
 
 future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 {
-	buffer_t buffer;
+	buffer_t buffer(BUF_LEN + 1);
 	while (true)
 	{
 		buffer.clear();
@@ -22,7 +23,10 @@ future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 		if (buffer.has_data())
 		{
 			//防止烫烫烫烫烫烫烫烫烫烫烫烫烫或屯屯屯屯屯屯屯屯屯屯屯屯屯屯
-			buffer.data()[buffer.data_len()] = 0;
+			int len = buffer.data_len();
+			if (len > BUF_LEN)
+				len = BUF_LEN;
+			buffer.data()[len] = 0;
 			cout << "recv from " << addr << ":" << buffer.data() << endl;
 			//超时时间为5秒
 			bool is_timeout = co_await buffer_write(&buffer, client_socket, 5000ms);
@@ -33,7 +37,10 @@ future_t<> test_send_and_recv(socket_t* client_socket, string addr)
 			}
 		}
 		else
+		{
+			client_socket->close();
 			break;
+		}
 	}
 	cout << "client leave" << endl;
 	delete client_socket;
