@@ -3,7 +3,6 @@
 #include "common.h"
 #include "iocp.h"
 #include "export_api.h"
-#include "scheduler_private_api.h"
 #include <list>
 #include <coroutine>
 #include <iostream>
@@ -23,13 +22,6 @@ namespace libfuture
 	 */
 	class LIBFUTURE_API scheduler_impl_t
 	{
-		friend class scheduler_private_api;
-
-		template <typename> friend struct promise_t;
-
-		template <typename> friend class future_t;
-
-		template <typename> friend class future_impl_t;
 	public:
 
 		using handle_type = std::coroutine_handle<>;
@@ -91,7 +83,6 @@ namespace libfuture
 		 */
 		handle_type current_handle();
 
-	protected:
 		/**
 		 * @brief 添加进socketio队列
 		 * @param socket 要通信的socket
@@ -123,6 +114,7 @@ namespace libfuture
 		 */
 		void add_to_suspend(handle_type handle);
 
+	protected:
 		/**
 		 * @brief 调度socketio_queue_
 		 * @param

@@ -20,7 +20,7 @@ namespace libfuture
 		awaitable_t<> awaitable;
 		scheduler_impl_t* sch = current_scheduler();
 		uint64_t tmp = std::chrono::duration_cast<std::chrono::milliseconds>(dt_).count();
-		scheduler_private_api::sleep_until(tmp + utils_t::get_cur_timestamp());
+		sch->sleep_until(tmp + utils_t::get_cur_timestamp());
 		return awaitable.get_future();
 	}
 
@@ -35,7 +35,7 @@ namespace libfuture
 		awaitable_t<> awaitable;
 		scheduler_impl_t* sch = current_scheduler();
 		uint64_t tmp = std::chrono::duration_cast<std::chrono::milliseconds>(dt_).count();
-		scheduler_private_api::sleep_until(tmp + utils_t::get_cur_timestamp());
+		sch->sleep_until(tmp + utils_t::get_cur_timestamp());
 		return awaitable.get_future();
 	}
 

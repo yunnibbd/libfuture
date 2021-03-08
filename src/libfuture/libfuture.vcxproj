@@ -171,7 +171,6 @@
     <ClInclude Include="promise.h" />
     <ClInclude Include="base_scheduler.h" />
     <ClInclude Include="scheduler.h" />
-    <ClInclude Include="scheduler_private_api.h" />
     <ClInclude Include="sleep.h" />
     <ClInclude Include="socket.h" />
     <ClInclude Include="utils.h" />
@@ -182,7 +181,6 @@
     <ClCompile Include="iocp.cpp" />
     <ClCompile Include="base_scheduler.cpp" />
     <ClCompile Include="scheduler.cpp" />
-    <ClCompile Include="scheduler_private_api.cpp" />
     <ClCompile Include="socket.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
